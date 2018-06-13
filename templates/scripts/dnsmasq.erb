@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# script to refresh dnsmasq
+#
+
+ps -U <%= @dnsmasquser %> -a | grep dnsmasq | grep -v `basename $0` | cut -b1-5 > /var/run/libvirt/dnsmasq.pid
+PID=`cat /var/run/libvirt/dnsmasq.pid`
+
+if [ "x$PID" == "x" ]; then
+	rm /var/run/libvirt/dnsmasq.pid
+fi
+
+case "$1" in
+	reload)		
+		kill -HUP $PID
+		exit 0
+		;;
+	status)
+		if [ "x$PID" != "x" ]; then
+			echo "running"
+			exit 0
+		else
+			echo "no running dnsmasq process found"
+			exit 1
+		fi 
+		;;
+esac

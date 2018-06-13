@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+# script which will be executed when the daemon is started or stopped
+# 
+# @see https://www.libvirt.org/hooks.html
+# ----------------------------------------------------
+# file manged by puppet module pitlinz_virsh
+#
+# template: pitlinz_virsh/hooks/daemon.erb
+# 
+# do not edit will be overritten
+#
+# hostid <%= @hostid %>
+
+if [ "$2" == "-v" -o "$3" == "-v" ]; then
+        set -xe
+fi
+
+# for testing and monitoring
+case "$1" in
+	status)
+		# checking virsh default reject rules
+		if [ `/sbin/iptables-save | grep FORWARD | grep -c "<%= @bridgename %> -j REJECT --reject-with icmp-port-unreachable"` -gt 0 ]; then
+			echo "virsh default FORWARD REJECT found"
+			exit 1
+		fi
+		
+		# checking if forward is enabled
+		if [ `/sbin/iptables-save  | grep "^\*filter" -A3 | grep "^\:FORWARD" | grep -c ACCEPT` -gt 0 ]; then
+			echo "FORWARD enabled by default"
+			exit 2
+		fi
+		
+		#checking if ipv4/ip_forward is enabled
+		if [ `cat /proc/sys/net/ipv4/ip_forward` -lt 1 ]; then
+			echo "ip_forward disbaled"
+			exit 3
+		fi
+		
+		echo "virsh daemon rules ok"
+		exit 0
+		;;
+	start)
+		$0 cmdline start $2
+		;;
+	stop)
+		$0 cmdline shutdown $2
+		;;	
+	reconfigure)
+		$0 reconf shutdown $2
+		$0 reconf start $2
+		;;
+esac
+
+DATE=`date +'%Y-%m-%d %H:%M:%s'`
+echo "$DATE $@" >> /var/log/virshhook.log
+
+if [ "$2" == "-" ]; then
+	ACTION=$3
+else
+	ACTION=$2
+fi
+
+INCDIR=`dirname $0`/firewall
+
+case "$ACTION" in
+	start)
+		
+		# ---------------------------------
+		# filter
+		# ---------------------------------
+		
+		iptables-save | grep FORWARD | grep <%= @bridgename %> | cut -f2-999 -d' ' | while read LINE; do
+			/sbin/iptables -D $LINE
+		done	
+						
+		if [ `/sbin/iptables-save | grep -c VIRSHFORWARD` -lt 1 ]; then
+			/sbin/iptables -N VIRSHFORWARD
+		fi
+		
+		/sbin/iptables -I FORWARD -i <%= @bridgename %> -j VIRSHFORWARD
+		/sbin/iptables -I FORWARD -o <%= @bridgename %> -j VIRSHFORWARD
+		
+		/sbin/iptables -F VIRSHFORWARD
+		/sbin/iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 
+		/sbin/iptables -A VIRSHFORWARD -i <%= @bridgename %> -j ACCEPT
+		
+	
+		# ---------------------------------
+		# nat
+		# ---------------------------------			
+				
+		# -- prerouting --- 
+		
+		iptables-save | grep PREROUTING | grep "to-destination <%= @networkpre %>" | cut -f2-999 -d' ' | while read LINE; do
+			/sbin/iptables -t nat -D $LINE  
+		done
+		
+		if [ `/sbin/iptables -t nat -L -nv | grep Chain | grep -c VIRSHPREROUTING` -lt 1 ]; then
+			/sbin/iptables -t nat -N VIRSHPREROUTING
+		fi		
+		
+		/sbin/iptables -t nat -C PREROUTING -j VIRSHPREROUTING
+		if [ $? != 0 ]; then
+			/sbin/iptables -t nat -I PREROUTING -j VIRSHPREROUTING
+		fi		
+		
+		/sbin/iptables -t nat -F VIRSHPREROUTING
+		
+		# -- postrouting ---
+		
+		if [ `/sbin/iptables -t nat -L -nv | grep Chain | grep -c VIRSHPOSTROUTING` -lt 1 ]; then
+			/sbin/iptables -t nat -N VIRSHPOSTROUTING
+		fi		
+		
+		/sbin/iptables -t nat -C POSTROUTING -j VIRSHPOSTROUTING
+		if [ $? != 0 ]; then
+			/sbin/iptables -t nat -I POSTROUTING -j VIRSHPOSTROUTING
+		fi	
+				
+		/sbin/iptables -t nat -F VIRSHPOSTROUTING
+		
+		
+		HOOKPATH=`dirname $0`
+		for NODE in `virsh list | grep running | cut -b8-20`; do 
+			CMD="$HOOKPATH/$NODE"
+			if [ -f $CMD ]; then
+				$CMD start
+			else
+				echo "no init script for node $NODE" 
+			fi  
+		done
+		
+		/sbin/iptables -t nat -C POSTROUTING -o <%= @extif %> -j MASQUERADE
+		if [ "$?" != "0" ]; then
+			/sbin/iptables -t nat -A POSTROUTING -o <%= @extif %> -j MASQUERADE
+		fi
+		
+		# ---------------------------------
+		# additional daemon rules
+		# ---------------------------------		
+		
+		for SCRIPT in `ls $INCDIR/daemon*.sh`; do
+			$SCRIPT start
+		done;
+		
+		;;
+	
+	shutdown)	
+	
+		# ---------------------------------
+		# additional daemon rules
+		# ---------------------------------		
+		
+		for SCRIPT in `ls $INCDIR/daemon*.sh`; do
+			$SCRIPT stop
+		done;	
+	
+		# ---------------------------------
+		# nat
+		# ---------------------------------
+					
+		if [ `/sbin/iptables -t nat -L -nv | grep Chain | grep -c VIRSHPREROUTING` -lt 1 ]; then
+			/sbin/iptables -t nat -C PREROUTING -j VIRSHPREROUTING
+			if [ "$?" != "0" ]; then
+				/sbin/iptables -t nat -I PREROUTING -j VIRSHPREROUTING
+			fi
+			/sbin/iptables -t nat -F VIRSHPREROUTING
+			/sbin/iptables -t nat -X VIRSHPREROUTING
+		fi		
+		
+						
+		if [ `/sbin/iptables -t nat -L -nv | grep Chain | grep -c VIRSHPOSTROUTING` -gt 0 ]; then					
+			/sbin/iptables -t nat -C POSTROUTING -j VIRSHPOSTROUTING
+			if [ "$?" != "0" ]; then
+				/sbin/iptables -t nat -D POSTROUTING -j VIRSHPOSTROUTING
+			fi						
+		
+			/sbin/iptables -t nat -F VIRSHPOSTROUTING		
+			/sbin/iptables -t nat -X VIRSHPOSTROUTING
+		if
+				
+					
+						
+		# ---------------------------------
+		# filter
+		# ---------------------------------	
+	
+		if [ `/sbin/iptables -L -nv | grep Chain | grep -c VIRSHFORWARD` -gt 0 ]; then
+			/sbin/iptables -C FORWARD -j VIRSHFORWARD
+			if [ "$?" != "0" ]; then
+				/sbin/iptables -D FORWARD -j VIRSHFORWARD
+			fi				
+			/sbin/iptables -F VIRSHFORWARD
+			/sbin/iptables -X VIRSHFORWARD
+		fi
+
+		;;
+		
+	*)
+		
+esac

@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# script which will be executed when <% @nodename %> is started or stopped
+# 
+# @see https://www.libvirt.org/hooks.html
+# ----------------------------------------------------
+# file manged by puppet module pitlinz_virsh
+#
+# template: pitlinz_virsh/hooks/qemu/firewall.erb
+# 
+# do not edit will be overritten
+#
+
+if [ "$2" == "-v" ]; then
+	set -x
+fi
+
+case "$1" in
+	start)
+		<%- if @fwnat and @fwnat.size then -%>
+			<%- @fwnat.to_a.each do |rule| -%>
+		/sbin/iptables -t nat -A <%= rule %>
+			<%- end -%>
+		<%- end -%>		
+		<%- if @fwfilter and @fwfilter.size then -%>
+			<%- @fwfilter.to_a.each do |rule| -%>
+		/sbin/iptables -A <%= rule %>
+			<%- end -%>
+		<%- end -%>			
+	
+		/sbin/iptables -t nat -A VIRSHPREROUTING -p tcp --dport <%= @_sshport %> -j DNAT --to-destination <%= @_intip %>:22
+		if [ "<%= @extip %>" != "" ]; then
+			EXTIF="<%= @extif %>"
+			if [ "$EXTIF" == "" ]; then 
+				EXTIF=`/sbin/ifconfig | grep <%= @extip %> -B1 | grep Link | cut -f1 -d' '`
+				/sbin/iptables -t nat -A VIRSHPOSTROUTING -o $EXTIF -s <%= @_intip %> -j SNAT --to-source <%= @extip %>
+			fi
+		fi
+        	
+		/sbin/iptables -A VIRSHFORWARD -p tcp --dport 22 -d <%= @_intip %> -j ACCEPT
+		;;
+	stop)
+		
+		iptables-save | grep VIRSHPREROUTING | grep "<%= @_intip %>" | cut -f2-999 -d' ' | while read LINE; do
+			if [ "$2" == "-v" ]; then
+				echo $LINE
+			fi
+			/sbin/iptables -t nat -D $LINE  
+		done	
+		
+		iptables-save | grep VIRSHPOSTROUTING | grep "<%= @_intip %>" | cut -f2-999 -d' ' | while read LINE; do
+			if [ "$2" == "-v" ]; then
+				echo $LINE
+			fi		
+			/sbin/iptables -t nat -D $LINE  
+		done				
+			
+		iptables-save | grep VIRSHFORWARD | grep "<%= @_intip %>" | cut -f2-999 -d' ' | while read LINE; do
+			if [ "$2" == "-v" ]; then
+				echo $LINE
+			fi		
+			/sbin/iptables -D $LINE  
+		done				
+		;;
+		
+	status)
+		COUNT=`/sbin/iptables -t nat -L VIRSHPREROUTING -n | grep "<%= @_intip %>:22" | grep -c <%= @_sshport %>`
+		if [ $COUNT -gt 0 ]; then
+			echo "configured $COUNT times"
+			exit 0
+		else
+			echo "not configured"
+			exit 1
+		fi
+		;;
+		
+	restart)
+		$0 stop
+		$0 start
+		;;
+esac
+

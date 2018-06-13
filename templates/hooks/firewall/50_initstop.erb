@@ -1,0 +1,13 @@
+
+	stop)
+		echo "---- pitlinz_virsh/hooks/firewall/50_initstop.erb $1 ----"
+
+		iptables-save | grep "VIRSHNODE-<%= @nodename %>-NAT" > /tmp/VIRSHNODE
+		sed -i 's/-A/iptables -t nat -D/g' /tmp/VIRSHNODE
+		. /tmp/VIRSHNODE	
+				
+		iptables-save | grep "VIRSHNODE-<%= @nodename %>-FILTER" > /tmp/VIRSHNODE
+		sed -i 's/-A/iptables -D/g' /tmp/VIRSHNODE
+		. /tmp/VIRSHNODE				
+
+		

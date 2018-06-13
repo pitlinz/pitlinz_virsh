@@ -1,0 +1,10 @@
+		<%- if @fwnat and @fwnat.size then -%>
+			<%- @fwnat.to_a.each do |rule| -%>
+		/sbin/iptables -t nat -A <%= rule %> -m --comment "--<%= @name %>--"
+			<%- end -%>
+		<%- end -%>		
+		<%- if @fwfilter and @fwfilter.size then -%>
+			<%- @fwfilter.to_a.each do |rule| -%> -m --comment "--<%= @name %>--"
+		/sbin/iptables -A <%= rule %>
+			<%- end -%>
+		<%- end -%>		

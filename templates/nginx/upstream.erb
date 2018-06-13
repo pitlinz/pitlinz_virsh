@@ -1,0 +1,15 @@
+
+# puppet template: pitlinz_virsh/templates/nginx/upstream.erb
+# 
+upstream <%= @name %> {
+<%- if @nodeids.size != 0 then -%>
+	<%- nodeids.to_a.each do |nodeid| -%>
+	server 192.168.<%= @hostid %>.<%= nodeid %>:<%= @upport %>;
+	<%- end -%>  
+<%- end -%>
+<%- if @nodeips.size != 0 then -%>
+	<%- nodeips.to_a.each do |uipaddr| -%>
+	server <%= uipaddr %>:<%= @upport %>;
+	<%- end -%>  
+<%- end -%>
+}

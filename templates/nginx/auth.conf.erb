@@ -1,0 +1,4 @@
+		# To add basic authentication to v2 use auth_basic setting plus add_header
+		auth_basic "<%= @name %>";
+		auth_basic_user_file /etc/nginx/auth/<%= @name %>.password;
+		

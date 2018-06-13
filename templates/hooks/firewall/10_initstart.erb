@@ -1,0 +1,7 @@
+		
+	start)
+		echo "---- pitlinz_virsh/hooks/firewall/10_initstart.erb $1 ----"
+		
+		/sbin/iptables -t nat -A VIRSHPREROUTING -p tcp --dport <%= @_sshport %> -j DNAT --to-destination <%= @_intip %>:22 -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"	
+		/sbin/iptables -A VIRSHFORWARD -p tcp --dport 22 -d <%= @_intip %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-" 
+		

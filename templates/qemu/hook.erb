@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# this script is exectued every time a kvm domain changes it's status
+# 
+# @see https://www.libvirt.org/hooks.html
+# ----------------------------------------------------
+# file manged by puppet module pitlinz_virsh
+#
+# template: pitlinz_virsh/qemu/hook.erb
+# 
+# do not edit will be overritten
+#
+DATE=`date +'%Y-%m-%d %H:%M:%s'`
+echo "qemu $DATE $@"  >> /var/log/virshhook.log
+
+FWSCRIPT="/etc/libvirt/hooks/firewall/${1}"
+if [ -x $FWSCRIPT ]; then
+        case "$2" in 
+                start)
+                        $FWSCRIPT start 2>1 & >> /var/log/virshhook.log
+                        # echo "$USR: $FWSCRIPT start" >> /var/log/qemuhook.log
+                        ;;
+                stopped)
+                        $FWSCRIPT stop 2>1 & >> /var/log/virshhook.log
+                        # echo "$USR: $FWSCRIPT stop" >> /var/log/qemuhook.log
+                        ;;
+        esac
+fi

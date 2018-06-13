@@ -1,0 +1,3 @@
+<%- if @bridge -%>
+	<bridge name='<%= @bridge -%>'<%- if @forward_mode and @forward_mode != 'bridge' -%> stp='off' delay='0'<%-end-%>/>
+<%- end -%>

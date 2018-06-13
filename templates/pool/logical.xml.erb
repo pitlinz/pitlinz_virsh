@@ -1,0 +1,18 @@
+ <pool type="<%= @type %>">
+   <name><%= @name %></name>
+<% if @sources.size > 0 then -%>
+   <source>
+<%- @sources.to_a.each do |src| -%>
+		<%= @src %>
+<%- end -%>
+   </source>	
+<% end %>
+<% if @targets.size > 0 then -%>
+   <target>
+<%- @targets.to_a.each do |tgt| -%>
+		<%= @tgt %>
+<%- end -%>
+   </target>
+<% end %>   
+ </pool>
+ 

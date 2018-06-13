@@ -1,0 +1,21 @@
+
+# puppet template: pitlinz_virsh/templates/nginx/upstream.erb
+# virsh location template
+#
+# @see http://nginx.org/en/docs/http/ngx_http_proxy_module.html
+	
+	location <%= @path %> {
+		proxy_pass                          http://<%= @name %>;
+		proxy_set_header  Host              $http_host;   # required for docker client's sake
+		proxy_set_header  X-Real-IP         $remote_addr; # pass on real client's IP
+		proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+		proxy_set_header  X-Forwarded-Proto $scheme;
+		proxy_read_timeout                  <%= @timeout %>;
+		proxy_redirect 						off;
+<%- if @psettings.size != 0 then -%>
+	<%- psettings.to_a.each do |setting| -%>  	
+	<%= @setting %>	
+	<%- end %>
+<%- end -%>
+	}
+	

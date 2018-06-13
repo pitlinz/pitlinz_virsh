@@ -1,0 +1,22 @@
+
+# puppet module: pitlinz_virsh
+# nginx config fragment: serverinit
+# 
+server {
+  	listen <%= @listenIp %>:<%= @listenPort %>;
+<%- if @_failoverIp != '' then -%>
+	listen <%= @_failoverIp %>:<%= @listenPort %>;
+<%- end -%>
+<%- if @_localIps.size > 0 then -%>
+	<%- @_localIps.to_a.each do |localIp| -%>
+	listen <%= localIp %>:<%= @listenPort %>;
+	<%- end -%>
+<%- end -%>
+  	server_name <%= @servername %> <%= @serveraliases %>;
+  	  	
+<%- @initsettings.to_a.each do |setting| -%>  	
+	<%= @setting %>
+<%- end %>
+
+# end serverinit
+ 	

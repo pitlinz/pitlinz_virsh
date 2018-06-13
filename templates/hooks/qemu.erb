@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+# this script is exectued every time a kvm domain changes it's status
+# 
+# @see https://www.libvirt.org/hooks.html
+# ----------------------------------------------------
+# file manged by puppet module pitlinz_virsh
+#
+# template: pitlinz_virsh/qemu/hook.erb
+# 
+# do not edit will be overritten
+#
+
+if [ "x$2" != "xstatus" ]; then
+	DATE=`date +'%Y-%m-%d %H:%M:%s'`
+	echo "---------------------------------------"	>> /var/log/virshhook.log
+	echo "qemu $DATE $@"  							>> /var/log/virshhook.log
+fi
+
+FWSCRIPT=""
+if [ -f /etc/libvirt/hooks/firewall/${1} ]; then
+	FWSCRIPT="/etc/libvirt/hooks/firewall/${1}"
+elif [ -f /etc/firewall/910-${1}.sh ]; then
+	FWSCRIPT="/etc/firewall/910-${1}.sh"
+fi	
+		
+if [ -x $FWSCRIPT ]; then
+        case "$2" in 
+			prepare)
+				$FWSCRIPT start 2>1 & >> /var/log/virshhook.log
+				# echo "$USR: $FWSCRIPT start" >> /var/log/virshhook.log
+				;;
+			stopped)
+				$FWSCRIPT stop 2>1 & >> /var/log/virshhook.log
+				# echo "$USR: $FWSCRIPT stop" >> /var/log/virshhook.log
+				;;
+			reconnect)
+				$FWSCRIPT restart 2>1 & >> /var/log/virshhook.log
+				;;
+			release)
+				$FWSCRIPT delete 2>1 & >> /var/log/virshhook.log
+				;;
+			restart)
+				$FWSCRIPT restart 
+				;;				
+			status)
+				$FWSCRIPT status
+				exit $?
+				;;
+			*)
+				echo "unknown command: $2" >> /var/log/virshhook.log
+				;;
+        esac
+else 	
+	echo "error no firewall script for ${1}" 	
+fi
+echo "---------------------------------------"	>> /var/log/virshhook.log
