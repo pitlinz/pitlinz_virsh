@@ -9,7 +9,7 @@ define pitlinz_virsh::qemu::guest::network(
 
     $netid		= $::pitlinz_virsh::hostid,
 
-    $netname	= "default",
+    $netname	= $::pitlinz_virsh::netname,
 	$model		= "virtio",
     $macaddr	= undef,
     $intip		= undef,
@@ -51,7 +51,7 @@ define pitlinz_virsh::qemu::guest::network(
         $_macaddr = $macaddr
     }
 
-	if ($instscript ) {
+	if ($instscript) {
 	    concat::fragment{"${nodename}_net_${name}":
 	        target 	=> "${::pitlinz_virsh::path_setup}/${nodename}.sh",
 	        content => "\n#network: ${name}\nNETWORK=\"\$NETWORK --network network=${netname},model=${model},mac=${_macaddr}\"\n",

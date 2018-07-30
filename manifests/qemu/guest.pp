@@ -2,19 +2,20 @@
  * define a qemu domain
  */
 define pitlinz_virsh::qemu::guest(
-    $ensure = present,
+    $ensure     = present,
 	$nodeid	  	= undef,
 	$netid		= $::pitlinz_virsh::hostid,
+    $netname    = 'default',
 	$extip		= $::ipaddress,
-	$nicmodel	= "virtio",
-	$tcpports 	= "",
+	$nicmodel	= 'virtio',
+	$tcpports 	= '',
 	$fwnat		= [],
 	$fwfilter	= [],
-	$cpus		= "1",
-	$memory		= "4096",
+	$cpus		= 1,
+	$memory		= 4096,
     $disks 		= undef,
 
-    $ostype		= "linux",
+    $ostype		= 'linux',
     $installurl	= "http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/",
     $isoimage	= "",
     $boot		= "",
@@ -57,6 +58,7 @@ define pitlinz_virsh::qemu::guest(
 
     ::pitlinz_virsh::qemu::guest::network{"net_${name}":
         ensure 		=> $ensure,
+        netname     => $netname,
         nodename	=> $name,
         nodeid		=> $nodeid,
         model		=> $nicmodel,

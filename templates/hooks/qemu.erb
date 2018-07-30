@@ -1,20 +1,27 @@
 #!/bin/bash
 #
 # this script is exectued every time a kvm domain changes it's status
-# 
+#
 # @see https://www.libvirt.org/hooks.html
 # ----------------------------------------------------
 # file manged by puppet module pitlinz_virsh
 #
 # template: pitlinz_virsh/qemu/hook.erb
-# 
+#
 # do not edit will be overritten
 #
 
+LOGDIR="/var/log/virsh/hooks"
+
+if [ ! -d $LOGDIR ]; then
+    mkdir -p $LOGDIR
+fi
+LOGFILE="${LOGDIR}/qemu.log"
+
 if [ "x$2" != "xstatus" ]; then
 	DATE=`date +'%Y-%m-%d %H:%M:%s'`
-	echo "---------------------------------------"	>> /var/log/virshhook.log
-	echo "qemu $DATE $@"  							>> /var/log/virshhook.log
+	echo "---------------------------------------"	>> $LOGFILE
+	echo "qemu $DATE $@"  							>> $LOGFILE
 fi
 
 FWSCRIPT=""
@@ -22,36 +29,36 @@ if [ -f /etc/libvirt/hooks/firewall/${1} ]; then
 	FWSCRIPT="/etc/libvirt/hooks/firewall/${1}"
 elif [ -f /etc/firewall/910-${1}.sh ]; then
 	FWSCRIPT="/etc/firewall/910-${1}.sh"
-fi	
-		
+fi
+
 if [ -x $FWSCRIPT ]; then
-        case "$2" in 
+        case "$2" in
 			prepare)
-				$FWSCRIPT start 2>1 & >> /var/log/virshhook.log
-				# echo "$USR: $FWSCRIPT start" >> /var/log/virshhook.log
+				$FWSCRIPT start 2>1 & >> $LOGFILE
+				# echo "$USR: $FWSCRIPT start" >> $LOGFILE
 				;;
 			stopped)
-				$FWSCRIPT stop 2>1 & >> /var/log/virshhook.log
-				# echo "$USR: $FWSCRIPT stop" >> /var/log/virshhook.log
+				$FWSCRIPT stop 2>1 & >> $LOGFILE
+				# echo "$USR: $FWSCRIPT stop" >> $LOGFILE
 				;;
 			reconnect)
-				$FWSCRIPT restart 2>1 & >> /var/log/virshhook.log
+				$FWSCRIPT restart 2>1 & >> $LOGFILE
 				;;
 			release)
-				$FWSCRIPT delete 2>1 & >> /var/log/virshhook.log
+				$FWSCRIPT delete 2>1 & >> $LOGFILE
 				;;
 			restart)
-				$FWSCRIPT restart 
-				;;				
+				$FWSCRIPT restart
+				;;
 			status)
 				$FWSCRIPT status
 				exit $?
 				;;
 			*)
-				echo "unknown command: $2" >> /var/log/virshhook.log
+				echo "unknown command: $2" >> $LOGFILE
 				;;
         esac
-else 	
-	echo "error no firewall script for ${1}" 	
+else
+	echo "error no firewall script for ${1}"
 fi
-echo "---------------------------------------"	>> /var/log/virshhook.log
+echo "---------------------------------------"	>> $LOGFILE

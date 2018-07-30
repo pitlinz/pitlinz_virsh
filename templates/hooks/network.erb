@@ -1,155 +1,157 @@
 #!/bin/bash
 #
 # script which will be executed when the daemon is started or stopped
-# 
+#
 # @see https://www.libvirt.org/hooks.html
 # ----------------------------------------------------
 # file manged by puppet module pitlinz_virsh
 #
 # template: pitlinz_virsh/hooks/daemon.erb
-# 
+#
 # do not edit will be overritten
 #
 # hostid <%= @hostid %>
 
 . /etc/environment
 
-UPTIMESEC=`facter | grep system_uptime | cut -f3 -d'>' | cut -f1 -d','`
+LOGDIR="/var/log/virsh/hooks"
 
-case "$1" in
-	<%= @netname %>)
-		NETWORK="<%= @_net_address%>"
-		BRIDGE="<%= @bridge %>"
-		FWDEV="<%= @forward_dev %>"
-		;;
-esac
-
-if [ "x$2" != "xstatus" ]; then
-	DATE=`date +'%Y-%m-%d %H:%M:%s'`
-	echo "# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " >> /var/log/virshhook.log
-	echo "$DATE $@" >> /var/log/virshhook.log
-	echo "# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " >> /var/log/virshhook.log
-	echo $0 $@
-	
-	printf "\n\n"
-	echo "----------------------------------------------------"
-	echo "<%= @name %>"
-	echo $0 $@
-	echo "----------------------------------------------------"	
+if [ ! -d $LOGDIR ]; then
+    mkdir -p $LOGDIR
 fi
+LOGFILE="${LOGDIR}/network.log"
+
+HOOKPATH=`dirname $0`
+
+CONFFILE="${HOOKPATH}/net/${1}.conf"
 
 if [ "x$3" == "x-v" ]; then
 	VERBOSE="-v"
 	set -x
-else 
-	VERBOSE=	
+else
+	VERBOSE=
 fi
 
-HOOKPATH=`dirname $0`
+if [ "x$2" != "xstatus" ]; then
+	DATE=`date +'%Y-%m-%d %H:%M:%s'`
+	echo "# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " >> $LOGFILE
+	echo "$DATE $@"                                      >> $LOGFILE
+	echo "# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ " >> $LOGFILE
+fi
+
+if [ ! -f $CONFFILE ]; then
+    echo "no configuration for network $1" >> $LOGFILE
+    exit -99
+fi
+
+. $CONFFILE
 
 case "$2" in
 	clean)
-		iptables -t nat -D POSTROUTING -s $NETWORK -d 224.0.0.0/24 -j RETURN &>/dev/null
-		iptables -t nat -D POSTROUTING -s $NETWORK -d 255.255.255.255/32 -j RETURN &>/dev/null
-		iptables -t nat -D POSTROUTING -s $NETWORK ! -d $NETWORK -p tcp -j MASQUERADE --to-ports 1024-65535 &>/dev/null
-		iptables -t nat -D POSTROUTING -s $NETWORK ! -d $NETWORK -p udp -j MASQUERADE --to-ports 1024-65535 &>/dev/null
-		iptables -t nat -D POSTROUTING -s $NETWORK ! -d $NETWORK -j MASQUERADE &>/dev/null
-								
-		iptables -D INPUT -i $BRIDGE -p udp -m udp --dport 53 -j ACCEPT &>/dev/null
-		iptables -D INPUT -i $BRIDGE -p tcp -m tcp --dport 53 -j ACCEPT &>/dev/null
-		iptables -D INPUT -i $BRIDGE -p udp -m udp --dport 67 -j ACCEPT &>/dev/null
-		iptables -D INPUT -i $BRIDGE -p tcp -m tcp --dport 67 -j ACCEPT &>/dev/null
-	
-		iptables -D FORWARD -d $NETWORK -o $BRIDGE  -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT &>/dev/null
-		iptables -D FORWARD -s $NETWORK -i $BRIDGE  -j ACCEPT &>/dev/null
-		iptables -D FORWARD -i $BRIDGE  -o $BRIDGE  -j ACCEPT &>/dev/null
-		iptables -D -o $BRIDGE  -j REJECT --reject-with icmp-port-unreachable &>/dev/null
-		iptables -D -i $BRIDGE  -j REJECT --reject-with icmp-port-unreachable &>/dev/null	
-		;;
-		
-	started)	
+        iptables -t nat -D POSTROUTING -s $NETWORK -d 224.0.0.0/24 -j RETURN &>/dev/null
+        iptables -t nat -D POSTROUTING -s $NETWORK -d 255.255.255.255/32 -j RETURN &>/dev/null
+        iptables -t nat -D POSTROUTING -s $NETWORK ! -d $NETWORK -p tcp -j MASQUERADE --to-ports 1024-65535 &>/dev/null
+        iptables -t nat -D POSTROUTING -s $NETWORK ! -d $NETWORK -p udp -j MASQUERADE --to-ports 1024-65535 &>/dev/null
+        iptables -t nat -D POSTROUTING -s $NETWORK ! -d $NETWORK -j MASQUERADE &>/dev/null
+
+        iptables -t mangle -D POSTROUTING -o virbr0 -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill &>/dev/null
+
+        iptables -D INPUT -i $BRIDGE -p udp -m udp --dport 53 -j ACCEPT &>/dev/null
+        iptables -D INPUT -i $BRIDGE -p tcp -m tcp --dport 53 -j ACCEPT &>/dev/null
+        iptables -D INPUT -i $BRIDGE -p udp -m udp --dport 67 -j ACCEPT &>/dev/null
+        iptables -D INPUT -i $BRIDGE -p tcp -m tcp --dport 67 -j ACCEPT &>/dev/null
+
+        iptables -D FORWARD -d $NETWORK -i $FWDEV -o $BRIDGE -j ACCEPT &>/dev/null
+        iptables -D FORWARD -s $NETWORK -i $BRIDGE -o $FWDEV -j ACCEPT &>/dev/null
+        iptables -D FORWARD -d $NETWORK -o $BRIDGE  -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT &>/dev/null
+        iptables -D FORWARD -s $NETWORK -i $BRIDGE  -j ACCEPT &>/dev/null
+        iptables -D FORWARD -i $BRIDGE  -o $BRIDGE  -j ACCEPT &>/dev/null
+        iptables -D FORWARD -o $BRIDGE  -j REJECT --reject-with icmp-port-unreachable &>/dev/null
+        iptables -D FORWARD -i $BRIDGE  -j REJECT --reject-with icmp-port-unreachable &>/dev/null
+        ;;
+
+	started)
 		$0 $1 clean $VERBOSE
-		$0 $1 virshstart $VERBOSE
-		;;
-		
-	virshstart)
-		iptables -t nat -N VIRSHPREROUTING &>/dev/null		
-		iptables -t nat -N VIRSHPOSTROUTING &>/dev/null
-		iptables -t nat -I POSTROUTING -s $NETWORK -j VIRSHPOSTROUTING -m comment --comment "VIRSHNET-$1-NAT"		
-	 	iptables -t nat -I VIRSHPOSTROUTING -i $BRIDGE -o $BRIDGE -j ACCEPT -m comment --comment "VIRSHNET-$1-NAT"
-	 	iptables -t nat -A POSTROUTING -o $FWDEV -s $NETWORK -j MASQUERADE -m comment --comment "VIRSHNET-$1-NAT"
-<%- if @fwnat and @fwnat.size then -%><%- @fwnat.to_a.each do |rule| -%>
-		/sbin/iptables -t nat <%= rule %> -m comment --comment "VIRSHNET-$1-NAT"
-<%- end -%><%- end -%>	 
-	 
-		iptables -N VIRSHINPUT &>/dev/null
-		if [ $? == 0 ]; then
-			iptables -A INPUT -j VIRSHINPUT -m comment --comment "VIRSHNET-$1-FILTER"
-		fi	
-		iptables -A VIRSHINPUT -s $NETWORK -j ACCEPT -m comment --comment "VIRSHNET-$1-FILTER"	 
-		
-		iptables -N VIRSHFORWARD &>/dev/null
-		iptables -A FORWARD -s $NETWORK -j VIRSHFORWARD -m comment --comment "VIRSHNET-$1-FILTER"	
-		iptables -A FORWARD -d $NETWORK -j VIRSHFORWARD -m comment --comment "VIRSHNET-$1-FILTER"	
-		
-		iptables -A VIRSHFORWARD -s $NETWORK -i $BRIDGE -j ACCEPT -m comment --comment "VIRSHNET-$1-FILTER"
-<%- if @fwfilter and @fwfilter.size then -%><%- @fwfilter.to_a.each do |rule| -%> 
-		/sbin/iptables <%= rule %> -m comment --comment "VIRSHNET-$1-FILTER"
-<%- end -%><%- end -%>		
-		$0 $1 restartnodes $VERBOSE
-		;;
-		
-	fwstart)
-		$0 $1 stop $VERBOSE
-		if [ `iptables -t mangle -L -nv | grep -c "VIRSHNET-$1-MANGLE"` -lt 1 ]; then
-			iptables -t mangle -A POSTROUTING -o $BRIDGE -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill -m comment --comment "VIRSHNET-$1-MANGLE"
-		fi	
-		$0 $1 virshstart $VERBOSE
-		;;
-		
-	monitstart)
-		$0 $1 stop $VERBOSE
 		$0 $1 fwstart $VERBOSE
-		;;	
-		
-	stop)
-		$0 $1 clean $VERBOSE
-		iptables-save | grep "VIRSHNET-$1-FILTER" > /tmp/VIRSHNETFILTER
-		sed -i 's/-A/iptables -D/g' /tmp/VIRSHNETFILTER
-		. /tmp/VIRSHNETFILTER
-	
-		iptables-save | grep "VIRSHNET-$1-NAT" > /tmp/VIRSHNETNAT
-		sed -i 's/-A/iptables -t nat -D/g' /tmp/VIRSHNETNAT
-		. /tmp/VIRSHNETNAT		
-		
-		iptables-save | grep "VIRSHNET-$1-MANGLE" > /tmp/VIRSHNETMANGLE
-		sed -i 's/-A/iptables -t mangle -D/g' /tmp/VIRSHNETMANGLE
-		. /tmp/VIRSHNETMANGLE			
 		;;
-		
+
+	fwstart)
+        if [ `iptables-save | grep -c 'VIRSHDEAMON-'` -lt 1 ]; then
+            `dirname $0`/daemon start
+        fi
+
+        iptables -t nat -A PREROUTING -j VIRSHPREROUTING -m comment --comment "VIRSHNET-$1-NAT"
+
+        iptables -t nat -A POSTROUTING -s $NETWORK -j VIRSHPOSTROUTING -m comment --comment "VIRSHNET-$1-NAT"
+        iptables -t nat -I VIRSHPOSTROUTING -i $BRIDGE -o $BRIDGE -j ACCEPT -m comment --comment "VIRSHNET-$1-NAT"
+        iptables -t nat -A VIRSHPOSTROUTING -o $FWDEV -s $NETWORK -j MASQUERADE -m comment --comment "VIRSHNET-$1-NAT"
+<%- if @fwnat and @fwnat.size then -%><%- @fwnat.to_a.each do |rule| -%>
+        /sbin/iptables -t nat <%= rule %> -m comment --comment "VIRSHNET-$1-NAT"
+<%- end -%><%- end -%>
+
+        iptables -t mangle -A POSTROUTING -o $BRIDGE -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill -m comment --comment "VIRSHNET-$1-MANGLE"
+
+        iptables -A INPUT -i $BRIDGE -j VIRSHINPUT -m comment --comment "VIRSHNET-$1-FILTER"
+
+        iptables -A FORWARD -s $NETWORK -j VIRSHFORWARD -m comment --comment "VIRSHNET-$1-FILTER"
+        iptables -A FORWARD -d $NETWORK -j VIRSHFORWARD -m comment --comment "VIRSHNET-$1-FILTER"
+
+        iptables -A VIRSHFORWARD -s $NETWORK -i $BRIDGE -j ACCEPT -m comment --comment "VIRSHNET-$1-FILTER"
+<%- if @fwfilter and @fwfilter.size then -%><%- @fwfilter.to_a.each do |rule| -%>
+        /sbin/iptables <%= rule %> -m comment --comment "VIRSHNET-$1-FILTER"
+<%- end -%><%- end -%>
+
+
+        # check the runtime of libvirtd
+        if [ ! -f <%= @pidfile %> ]; then
+            exit -1
+        fi
+        PID=`/bin/cat <%= @pidfile %>`
+        ETIME=`/bin/ps -o etimes= -p $PID`
+
+        if [ ${ETIME} -lt 600 ]; then
+            # the system is just started so hooks for guests should be called
+            # when they are started
+            exit 0
+        fi
+
+        # avoid using virsh list becaus status of virsh is not known
+        for GUEST in `/bin/ps aux | /bin/grep qemu | /bin/grep "guest=" | /usr/bin/cut -f2 -d'_' | /usr/bin/cut -f1 -d',' | /usr/bin/cut -f2 -d'='`; do
+            if [ -x /etc/libvirt/hooks/firewall/${GUEST} ]; then
+                /etc/libvirt/hooks/firewall/${GUEST} restart
+            fi
+        done
+
+		;;
+
+	stop)
+        $0 $1 clean $VERBOSE
+        iptables-save | grep "VIRSHNET-$1-FILTER" > /tmp/VIRSHNETFILTER
+        sed -i 's/-A/iptables -D/g' /tmp/VIRSHNETFILTER
+        . /tmp/VIRSHNETFILTER
+
+        iptables-save | grep "VIRSHNET-$1-NAT" > /tmp/VIRSHNETNAT
+        sed -i 's/-A/iptables -t nat -D/g' /tmp/VIRSHNETNAT
+        . /tmp/VIRSHNETNAT
+
+        iptables-save | grep "VIRSHNET-$1-MANGLE" > /tmp/VIRSHNETMANGLE
+        sed -i 's/-A/iptables -t mangle -D/g' /tmp/VIRSHNETMANGLE
+        . /tmp/VIRSHNETMANGLE
+        ;;
+
 	status)
 		for TBL in FILTER NAT; do
 			if [ `iptables-save | grep -c "VIRSHNET-$1-$TBL"` -lt 1 ]; then
 				echo "no VIRSHNET-$1-$TBL rules found"
 				exit 1
-			fi 
+			fi
 		done
 		echo "network $1 is running"
 		exit 0
 		;;
-		
-	restart)
-		$0 $1 stop $VERBOSE
-		$0 $1 fwstart $VERBOSE
-		;;
-		
-	restartnodes)
-		if [ "$UPTIMESEC" -gt "120" ]; then
-			for NODE in `virsh list | grep running | cut -b8-20`; do
-				echo "(re)start node $NODE"
-				${HOOKPATH}/qemu $NODE restart $VERBOSE
-			done
-		fi
-		;;	
-esac
 
+	restart)
+        $0 $1 stop $VERBOSE
+        $0 $1 fwstart $VERBOSE
+        ;;
+esac

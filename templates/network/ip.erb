@@ -1,0 +1,9 @@
+<%-if @_ip_address -%>
+    <ip address='<%= @_ip_address %>' netmask='<%= @_ip_netmask %>'>
+<%-if @_dhcp_start and @_dhcp_end -%>
+        <dhcp>
+            <range start='<%= @_dhcp_start %>' end='<%= @_dhcp_end %>'/>
+        </dhcp>
+<%- end -%>
+    </ip>
+<%- end -%>

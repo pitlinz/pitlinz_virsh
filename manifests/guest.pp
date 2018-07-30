@@ -6,6 +6,7 @@ define pitlinz_virsh::guest(
 
     $ensure 	= present,
 	$nodeid	  	= undef,
+    $netname    = 'default',
 	$nicmodel	= "virtio",
 	$extip		= "",
 	$tcpports 	= "",
@@ -30,6 +31,7 @@ define pitlinz_virsh::guest(
 	        ::pitlinz_virsh::qemu::guest{"${name}":
     			ensure 		=> $ensure,
 				nodeid		=> $nodeid,
+                netname     => $netname,
 				extip		=> $extip,
 				tcpports 	=> $tcpports,
 				fwnat		=> $fwnat,

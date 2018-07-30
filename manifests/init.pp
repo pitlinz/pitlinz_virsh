@@ -20,6 +20,7 @@ class pitlinz_virsh(
 	$group		 = 'kvm',
 	$dnsmasquser = 'libvirt-dnsmasq',
 
+    $pidfile     = '/var/run/libvirtd.pid',
 	$monit 	= {
 	    start		=> true,
 		daemonchks	=> [
@@ -30,7 +31,7 @@ class pitlinz_virsh(
 	},
 ) {
     if ($hostid < 0) or ($hostid > 254) {
-        fail("wrong hostid ")
+        fail("wrong hostid")
     }
 
 	if $hostid < 10 {
@@ -65,9 +66,25 @@ class pitlinz_virsh(
 		}
     }
 
-	::pitlinz_common::package{['libvirt-bin', 'ubuntu-virt-server', 'python-vm-builder','ruby-libvirt','bridge-utils','virtinst','virt-viewer','virt-top','libguestfs-tools']:
+	::pitlinz_common::package{['libvirt-bin', 'python-vm-builder','ruby-libvirt','bridge-utils','virtinst','virt-viewer','virt-top','libguestfs-tools']:
 	    ensure => $_pkg_ensure
 	}
+
+    if $::lsbdistid == 'Ubuntu' {
+        if (0.0 + $::operatingsystemrelease) < 16.04 {
+            package{'ubuntu-virt-server':
+                ensure => $_pkg_ensure
+            }
+        }
+
+        if (0.0 + $::operatingsystemrelease) < 18.04 {
+            $initscript = '/etc/init.d/libvirt-bin'
+        } else {
+            $initscript = '/etc/init.d/libvirtd'
+        }
+    } else {
+        $initscript = '/etc/init.d/libvirt-bin'
+    }
 
 	if ($_path_ensure == directory) {
 	    exec {"mkdir_${path_base}":
@@ -106,27 +123,25 @@ class pitlinz_virsh(
 	if is_hash($monit) {
 	    include monit
 
-		::monit::check::process{"libvirtd":
-	    	pidfile		=> "/var/run/libvirtd.pid",
-	    	start		=> "/etc/init.d/libvirt-bin start",
-			stop		=> "/etc/init.d/libvirt-bin stop",
+		::monit::check::process{'libvirtd':
+	    	pidfile		=> $pidfile,
+	    	start		=> "${initscript} start",
+			stop		=> "${initscript} stop",
 			customlines => $monit[daemonchks],
-			mgroups		=> ["virsh"]
+			mgroups		=> ['virsh']
     	}
 
 
-    	monit::check::programm {"virshdaemon_status":
+    	monit::check::programm {'virshdaemon_status':
 			ensure      	=> $_file_ensure,
 			scriptpath  	=> "${::pitlinz_virsh::path_etc}/hooks/daemon",
-			scriptparams	=> "status",
-			depends_on  	=> ["libvirtd"],
+			scriptparams	=> 'status',
+			depends_on  	=> ['libvirtd'],
 			customlines 	=> [
-				"if status != 0 then alert"
+				'if status != 0 then alert'
 			],
-			mgroups			=> ["virsh","firewall"],
-			require     => File["${path_etc}/hooks/daemon"],
+			mgroups			=> ['virsh','firewall'],
+			require         => File["${path_etc}/hooks/daemon"],
 		}
-
-
 	}
 }

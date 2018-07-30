@@ -1,20 +1,28 @@
 #!/bin/bash
 #
 # script which will be executed when the daemon is started or stopped
-# 
+#
 # @see https://www.libvirt.org/hooks.html
 # ----------------------------------------------------
 # file manged by puppet module pitlinz_virsh
 #
 # template: pitlinz_virsh/hooks/daemon.erb
-# 
+#
 # do not edit will be overritten
 #
 # hostid <%= @hostid %>
 
 . /etc/environment
 
-if [ "x$1" != "-" ]; then
+LOGDIR="/var/log/virsh/hooks"
+
+if [ ! -d $LOGDIR ]; then
+    mkdir -p $LOGDIR
+fi
+
+LOGFILE="${LOGDIR}/daemon.log"
+
+if [ "x$1" != "x-" ]; then
 	CMD=$1
 else
 	CMD=$2
@@ -22,82 +30,64 @@ fi
 
 if [ "x$CMD" != "xstatus" ]; then
 	DATE=`date +'%Y-%m-%d %H:%M:%s'`
-	echo "# ++++++++++++++++++++++++++++++++++++++++++ " >> /var/log/virshhook.log
-	echo "$DATE $@" >> /var/log/virshhook.log
-	echo "# ++++++++++++++++++++++++++++++++++++++++++ " >> /var/log/virshhook.log
+	echo "# ++++++++++++++++++++++++++++++++++++++++++ " >> $LOGFILE
+	echo "$DATE $@"                                      >> $LOGFILE
+	echo "# ++++++++++++++++++++++++++++++++++++++++++ " >> $LOGFILE
 fi
-
-UPTIMESEC=`facter | grep system_uptime | cut -f3 -d'>' | cut -f1 -d','`
 
 case "$CMD" in
 	start)
-		iptables -N VIRSHINPUT &>/dev/null
-		iptables -F VIRSHINPUT
-		iptables -A VIRSHINPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-		
+        iptables -N VIRSHINPUT &>/dev/null
+        if [ $? == 0 ]; then
+            iptables -A VIRSHINPUT -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
+            iptables -A VIRSHINPUT -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
+        fi
+
 		iptables -N VIRSHFORWARD &>/dev/null
-		iptables -F VIRSHFORWARD
-		iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-				
+        if [ $? == 0 ]; then
+            iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
+            iptables -A VIRSHFORWARD -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
+        fi
+
 		iptables -t nat -N VIRSHPREROUTING &>/dev/null
-		iptables -t nat -F VIRSHPREROUTING
-		iptables -t nat -I PREROUTING -j VIRSHPREROUTING
-		
 		iptables -t nat -N VIRSHPOSTROUTING &>/dev/null
-		iptables -t nat -F VIRSHPOSTROUTING			
+
 		;;
-	fwstart)
-		$0 start
-		if [ "$UPTIMESEC" -gt "600" ]; then
-			HOOKPATH=`dirname $0`
-			for NETNAME in `virsh net-list | grep active | cut -b2-20`; do
-				echo "fwstart network $NETNAME"
-				$HOOKPATH/network $NETNAME fwstart 
-			done
-			for NODE in `virsh list | grep running | cut -b8-20`; do
-				echo "(re)start node $NODE"
-				$HOOKPATH/qemu $NODE restart
-			done
-		fi
-		;;		
 	stop)
-		iptables-save | grep "\-j VIRSHINPUT" > /tmp/VIRSHINPUT
-		sed -i 's/-A/iptables -D/g' /tmp/VIRSHINPUT
-		. /tmp/VIRSHINPUT
-		iptables -F VIRSHINPUT
-		iptables -X VIRSHINPUT
-		
-		iptables-save | grep "\-j VIRSHFORWARD" > /tmp/VIRSHFORWARD
-		sed -i 's/-A/iptables -D/g' /tmp/VIRSHFORWARD
-		. /tmp/VIRSHFORWARD		
-		iptables -F VIRSHFORWARD
-		iptables -X VIRSHFORWARD
-		
-		iptables-save | grep "\-j VIRSHPREROUTING" > /tmp/VIRSHPREROUTING
-		sed -i 's/-A/iptables -t nat -D/g' /tmp/VIRSHPREROUTING
-		. /tmp/VIRSHPREROUTING		
-		iptables -t nat -F VIRSHPREROUTING
-		iptables -t nat -X VIRSHPREROUTING
-			
-		iptables-save | grep "\-j VIRSHPOSTROUTING" > /tmp/VIRSHPOSTROUTING
-		sed -i 's/-A/iptables -t nat -D/g' /tmp/VIRSHPOSTROUTING
-		. /tmp/VIRSHPOSTROUTING		
-		iptables -t nat -F VIRSHPOSTROUTING
-		iptables -t nat -X VIRSHPOSTROUTING
-						
 		;;
+    shutdown)
+        $0 stop
+        ;;
 	restart)
 		$0 stop
 		$0 start
 		;;
-		
+
 	status)
-		for IPTBL in VIRSHINPUT VIRSHFORWARD VIRSHPREROUTING VIRSHPOSTROUTING; do
-			if [ `iptables-save | grep -c $IPTBL` -lt 1 ]; then
-				echo "$IPTBL not found"
-				exit 1
-			fi
-		done
+        iptables -L VIRSHINPUT &>/dev/null
+        if [ $? != 0 ]; then
+            echo "VIRSHINPUT not defined"
+            exit -1
+        fi
+
+        iptables -L VIRSHFORWARD &>/dev/null
+        if [ $? != 0 ]; then
+            echo "VIRSHFORWARD not defined"
+            exit -2
+        fi
+
+        iptables -t nat -L VIRSHPREROUTING &>/dev/null
+        if [ $? != 0 ]; then
+            echo "VIRSHPREROUTING not defined"
+            exit -3
+        fi
+
+        iptables -t nat -L VIRSHPOSTROUTING &>/dev/null
+        if [ $? != 0 ]; then
+            echo "VIRSHPOSTROUTING not defined"
+            exit -4
+        fi
+
 		exit 0
 		;;
 	*)
