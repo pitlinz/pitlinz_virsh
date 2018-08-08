@@ -22,7 +22,14 @@ if [ "x$2" != "xstatus" ]; then
 	DATE=`date +'%Y-%m-%d %H:%M:%s'`
 	echo "---------------------------------------"	>> $LOGFILE
 	echo "qemu $DATE $@"  							>> $LOGFILE
+
+
+    if [ -f <%= @guesthookpath %>/${1}.sh ]; then
+        <%= @guesthookpath %>/${1}.sh $2
+    fi
 fi
+
+
 
 FWSCRIPT=""
 if [ -f /etc/libvirt/hooks/firewall/${1} ]; then
@@ -33,7 +40,7 @@ fi
 
 if [ -x $FWSCRIPT ]; then
         case "$2" in
-			prepare)
+			start)
 				$FWSCRIPT start 2>1 & >> $LOGFILE
 				# echo "$USR: $FWSCRIPT start" >> $LOGFILE
 				;;
@@ -55,7 +62,7 @@ if [ -x $FWSCRIPT ]; then
 				exit $?
 				;;
 			*)
-				echo "unknown command: $2" >> $LOGFILE
+				echo "unknown command: $2"
 				;;
         esac
 else

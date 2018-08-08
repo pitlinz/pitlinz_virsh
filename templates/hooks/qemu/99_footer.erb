@@ -1,0 +1,31 @@
+
+	status)
+		COUNT=`/sbin/iptables -t nat -L VIRSHPREROUTING -n | grep "<%= @_intip %>:22" | grep -c <%= @_sshport %>`
+		if [ $COUNT -gt 0 ]; then
+			echo "configured $COUNT times"
+			exit 0
+		else
+			echo "not configured"
+			exit 1
+		fi
+		;;
+	delete)
+		iptables-save | grep "VIRSH.*-<%= @nodename %>-NAT" > /tmp/ipt<%= @nodename %>
+		sed -i 's/-A/iptables -t nat -D/g' /tmp/ipt<%= @nodename %>
+		. /tmp/ipt<%= @nodename %>
+
+		iptables-save | grep "VIRSH.*-<%= @nodename %>-FILTER" > /tmp/ipt<%= @nodename %>
+		sed -i 's/-A/iptables -D/g' /tmp/ipt<%= @nodename %>
+		. /tmp/ipt<%= @nodename %>
+
+		rm /tmp/ipt<%= @nodename %>
+		;;
+	restart)
+        $0 delete
+        if [ `/bin/ps aux | /bin/grep qemu | /bin/grep "guest=felix1" | /bin/grep -c ":36"` -gt 0 ]; then
+            $0 start
+		fi
+		;;
+esac
+
+echo "FWSCRIPTENDS $0 $@" >> $LOGFILE

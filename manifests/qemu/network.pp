@@ -141,7 +141,7 @@ class pitlinz_virsh::qemu::network (
 	    order	=> "99"
 	}
 
-    $pidfile = ::pitlinz_virsh::pidfile
+    $pidfile = $::pitlinz_virsh::pidfile
 
 	if !defined(File["${::pitlinz_virsh::path_etc}/hooks/network"]) {
 		file{"${::pitlinz_virsh::path_etc}/hooks/network":

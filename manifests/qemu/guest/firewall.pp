@@ -1,3 +1,21 @@
+# creates the firewall hooks
+#
+# example hook calls
+# ---------------------------------------
+## virsh start $nodename
+# $nodename prepare begin -
+# $nodename start begin -
+# $nodename started begin -
+#---------------------------------------
+## virsh shutdown $nodename
+# $nodename stopped end -
+# $nodename release end -
+#---------------------------------------
+## virsh destroy $nodename
+# $nodename stopped end -
+# $nodename release end -
+#---------------------------------------
+#
 define pitlinz_virsh::qemu::guest::firewall(
     $ensure 	= present,
     $nodename	= undef,
@@ -55,11 +73,13 @@ define pitlinz_virsh::qemu::guest::firewall(
 
 	$fwhook = "${::pitlinz_virsh::path_etc}/hooks/firewall/${nodename}"
 
-	::concat{"${fwhook}":
-		ensure 	=> $ensure,
-		mode	=> '550',
-		require => File["${::pitlinz_virsh::path_etc}/hooks/firewall"]
-	}
+    if !defined(Concat[$fwhook]) {
+    	::concat{$fwhook:
+    		ensure 	=> $ensure,
+    		mode	=> '550',
+    		require => File["${::pitlinz_virsh::path_etc}/hooks/firewall"]
+    	}
+    }
 
 	::concat::fragment{"${fwhook}_head":
 	    target	=> "${fwhook}",

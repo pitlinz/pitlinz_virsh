@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# script which will be executed when <% @nodename %> is started or stopped
+#
+# @see https://www.libvirt.org/hooks.html
+# ----------------------------------------------------
+# file manged by puppet module pitlinz_virsh
+#
+# templates: pitlinz_virsh/hooks/qemu/*.erb
+#
+# do not edit will be overritten
+#
+
+
+# template: modules/pitlinz_virsh/templates/hooks/qemu/00_head.erb
+
+if [ "$2" == "-v" ]; then
+	set -x
+fi
+
+if [ "x$1" != "xstatus" ]; then
+	echo "FWSCRIPTBEGINN $0 $@" >> /var/log/virshhook.log
+fi
+
+case "$1" in
