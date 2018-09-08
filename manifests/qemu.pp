@@ -29,7 +29,7 @@ class pitlinz_virsh::qemu (
 	    $_dirensure = $ensure
 	}
 
-    $guesthookpath = "${::pitlinz_virsh::path_etc}/hooks/qemunodes"
+  $guesthookpath = "${::pitlinz_virsh::path_etc}/hooks/qemunodes"
 
 	file{$guesthookpath:
 	    ensure => $_dirensure
