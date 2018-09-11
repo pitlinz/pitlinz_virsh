@@ -4,10 +4,10 @@
  *
  */
 class pitlinz_virsh(
-    $ensure		 = running,
-    $hostid		 = -1,
+  $ensure		 = running,
+  $hostid		 = -1,
 
-	$extif		 = 'eth0',
+  $extif		 = 'eth0',
 
 	$bridgename  = 'virbr0',
 	$netname	 = 'default',
@@ -20,51 +20,51 @@ class pitlinz_virsh(
 	$group		 = 'kvm',
 	$dnsmasquser = 'libvirt-dnsmasq',
 
-    $pidfile     = '/var/run/libvirtd.pid',
+  $pidfile     = '/var/run/libvirtd.pid',
 	$monit 	= {
-	    start		=> true,
+    start		=> true,
 		daemonchks	=> [
-    	    "if cpu usage > 100% for 5 cycles then alert",
+      "if cpu usage > 100% for 5 cycles then alert",
 			"if cpu usage > 500% for 5 cycles then restart",
 			"if mem > 54 MB for 5 cycles then alert",
 		]
 	},
 ) {
-    if ($hostid < 0) or ($hostid > 254) {
-        fail("wrong hostid")
-    }
+  if ($hostid < 0) or ($hostid > 254) {
+    fail("wrong hostid")
+  }
 
 	if $hostid < 10 {
-	    $hostnetworkpre = "${networkpre}0${hostid}."
+    $hostnetworkpre = "${networkpre}0${hostid}."
 	} else {
 		$hostnetworkpre = "${networkpre}${hostid}."
 	}
 
-    $path_base	= "/srv/virsh"
-    $path_setup = "/srv/virsh/setup"
-    $path_img	= "/srv/virsh/images"
-    $path_cdrom	= "/srv/virsh/iso"
-    $path_etc	= "/etc/libvirt"
+  $path_base	= "/srv/virsh"
+  $path_setup = "/srv/virsh/setup"
+  $path_img	= "/srv/virsh/images"
+  $path_cdrom	= "/srv/virsh/iso"
+  $path_etc	= "/etc/libvirt"
 
 	File{
-	    owner   => $user,
-	    group   => $group,
-	    mode    => '0555'
+    owner   => $user,
+    group   => $group,
+    mode    => '0555'
 	}
 
-    case $ensure {
+  case $ensure {
 		absent: {
-		    $_pkg_ensure 	= purged
-		    $_path_ensure 	= absent
-		    $_file_ensure	= absent
-		}
+	    $_pkg_ensure 	= purged
+	    $_path_ensure 	= absent
+	    $_file_ensure	= absent
+    }
 
 		default: {
-		    $_pkg_ensure 	= latest
-		    $_path_ensure 	= directory
-		    $file_ensure	= present
-		}
+	    $_pkg_ensure 	= latest
+	    $_path_ensure 	= directory
+	    $file_ensure	= present
     }
+  }
 
 	::pitlinz_common::package{['libvirt-bin', 'python-vm-builder','ruby-libvirt','bridge-utils','virtinst','virt-viewer','virt-top','libguestfs-tools']:
 	    ensure => $_pkg_ensure

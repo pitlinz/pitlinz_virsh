@@ -2,22 +2,22 @@
  * create a virsh qemu domain
  */
 define pitlinz_virsh::guest(
-    $type		= 'qemu',
+  $type		= 'qemu',
 
-    $ensure 	= present,
-	$nodeid	  	= undef,
-    $netname    = 'default',
+  $ensure 	= present,
+	$nodeid	  = undef,
+  $netname  = 'virnet0',
 	$nicmodel	= "virtio",
 	$extip		= "",
-	$tcpports 	= "",
+	$tcpports = "",
 	$fwnat		= [],
 	$fwfilter	= [],
 	$cpus		= "1",
 	$memory		= "4096",
-    $disks 		= undef,
-    $isoimage	= "",
-    $boot		= "",
-    $proxynames = "",
+  $disks 		= undef,
+  $isoimage	= "",
+  $boot		= "",
+  $proxynames = "",
 	$runinstall	= true,
 	$installurl	= "http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/",
 	$autostart	= true,
@@ -25,19 +25,19 @@ define pitlinz_virsh::guest(
 ) {
 
 	case $type {
-	    'qemu': {
-	        include ::pitlinz_virsh::qemu
+    'qemu': {
+        include ::pitlinz_virsh::qemu
 
-	        ::pitlinz_virsh::qemu::guest{"${name}":
-    			ensure 		=> $ensure,
-				nodeid		=> $nodeid,
-                netname     => $netname,
+        ::pitlinz_virsh::qemu::guest{"${name}":
+        ensure 	=> $ensure,
+				nodeid	=> $nodeid,
+        netname => $netname,
 				extip		=> $extip,
-				tcpports 	=> $tcpports,
+				tcpports=> $tcpports,
 				fwnat		=> $fwnat,
-				fwfilter	=> $fwfilter,
+				fwfilter=> $fwfilter,
 				cpus		=> $cpus,
-				memory		=> $memory,
+				memory	=> $memory,
     			disks 		=> $disks,
     			isoimage	=> $isoimage,
     			boot		=> $boot,
