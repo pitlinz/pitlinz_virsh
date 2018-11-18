@@ -2,20 +2,19 @@
 # configure the default network
 #
 class pitlinz_virsh::qemu::network (
-    $ensure				= running,
+  $ensure				= running,
+  $netname			= 'virnet0',
+  $netid				= $::pitlinz_virsh::hostid,
+  $mac    			= undef,
 
-	$netname			= 'virnet0',
-    $netid				= $::pitlinz_virsh::hostid,
-   	$mac    			= undef,
-
-   	$forward_mode		= 'route',
-   	$forward_dev		= $::libvirtextif,
+  $forward_mode		= 'route',
+  $forward_dev		= $::libvirtextif,
 	$forward_interfaces = [$::libvirtextif],
 
-	$bridge 			= "virbr0",
+  $bridge 			= "virbr0",
 
-	$ip_address			= undef,
-	$ip_netmask			= undef,
+  $ip_address			= undef,
+  $ip_netmask			= undef,
 
 	$dhcp_start			= undef,
 	$dhcp_end			= undef,
@@ -29,13 +28,13 @@ class pitlinz_virsh::qemu::network (
 # requirements
 # --------------------------------
 
-    include ::pitlinz_virsh
+  include ::pitlinz_virsh
 
 # --------------------------------
 # declarations
 # --------------------------------
 
-    $xml_file = "${::pitlinz_virsh::path_setup}/qemu_net_${netname}.xml"
+  $xml_file = "${::pitlinz_virsh::path_setup}/qemu_net_${netname}.xml"
 
 	$ensure_file = $ensure? {
 		/(present|defined|enabled|running)/ => 'present',
@@ -44,104 +43,106 @@ class pitlinz_virsh::qemu::network (
 	}
 
 	if $netid < 0 {
-	    fail("no network id set")
+    fail("no network id set")
 	}
 
 	if $mac == undef {
-	    if ($netid < 10) 	{$_mac = "02:01:0a:0e:0${netid}:01"}
+    if ($netid < 10) 	{$_mac = "02:01:0a:0e:0${netid}:01"}
 		elsif ($netid <100)	{$_mac = "02:01:0a:0e:${netid}:01"}
 		else 				{fail("network id must not be larger then 99")}
 	} else {
-	    $_mac = $mac
+    $_mac = $mac
 	}
 
 	# -------------------------- ip_start values
 
-	if $ip_address == undef {
-	    if ($netid < 10) {
-	        $_net_ippre	= "${::pitlinz_virsh::networkpre}0${netid}"
-	    } elsif ($netid < 100) {
-	        $_net_ippre = "${::pitlinz_virsh::networkpre}${netid}"
+	if $ip_address == undef or $ip_address == '' {
+    if ($netid < 10) {
+      $_net_ippre	= "${::pitlinz_virsh::networkpre}0${netid}"
+    } elsif ($netid < 100) {
+      $_net_ippre = "${::pitlinz_virsh::networkpre}${netid}"
 		} else {
 			fail("network id must not be larger then 99")
-		}
+    }
 
-        $_ip_address 	= "${_net_ippre}.1"
-        $_net_address 	= "${_net_ippre}.0/24"
+    $_ip_address 	= "${_net_ippre}.1"
+    $_net_address 	= "${_net_ippre}.0/24"
 
 	} else {
-	    $_ip_address	= $ip_address
-	    $arr_ipaddr		= split("${ip_address}",".")
-        $_net_ippre     = "${arr_ipaddr[0]}.${arr_ipaddr[1]}.${arr_ipaddr[2]}"
-	    $_net_address 	= "${arr_ipaddr[0]}.${arr_ipaddr[1]}.${arr_ipaddr[2]}.0/24"
+    $_ip_address	= $ip_address
+    $arr_ipaddr		= split("$ip_address",'.')
+    $_net_ippre   = "${arr_ipaddr[0]}.${arr_ipaddr[1]}.${arr_ipaddr[2]}"
+    $_net_address = "${arr_ipaddr[0]}.${arr_ipaddr[1]}.${arr_ipaddr[2]}.0/24"
 	}
 
-    if $ip_netmask {
-        $_ip_netmask = $ip_netmask
-    } else {
-        $_ip_netmask = ip_netmask($_net_address)
-    }
+  if $ip_netmask {
+    $_ip_netmask = $ip_netmask
+  } else {
+    $_ip_netmask = ip_netmask($_net_address)
+  }
 
-    if $dhcp_start {
-        $_dhcp_start = $dhcp_start
-    } else {
-        $_dhcp_start = "${_net_ippre}.10"
-    }
+  if $dhcp_start {
+    $_dhcp_start = $dhcp_start
+  } else {
+    $_dhcp_start = "${_net_ippre}.10"
+  }
 
-    if $dhcp_end {
-        $_dhcp_end = $dhcp_end
-    } else {
-        $_dhcp_end = "${_net_ippre}.99"
-    }
+  if $dhcp_end {
+    $_dhcp_end = $dhcp_end
+  } else {
+    $_dhcp_end = "${_net_ippre}.99"
+  }
 
 
-    if $forward_dev and has_interface_with($forward_dev) {
-        $_forward_dev = $forward_dev
-    } else {
-        if $::lsbdistid == 'Ubuntu' and  (0.0 + $::operatingsystemrelease) >= 18.04 {
-            $_forward_dev = ''
-        }
+  if $forward_dev and has_interface_with($forward_dev) {
+    $_forward_dev = $forward_dev
+  } else {
+    if $::lsbdistid == 'Ubuntu' and  (0.0 + $::operatingsystemrelease) >= 18.04 {
+      $_forward_dev = ''
     }
+  }
+
+  $qemu_netip_pre = "${_net_ippre}"
 
 # --------------------------------
 # concat
 # --------------------------------
 
-	concat{"${xml_file}":
-		ensure 	=> $ensure_file,
+  concat{"${xml_file}":
+    ensure 	=> $ensure_file,
+  }
+
+  concat::fragment{"${xml_file}_head":
+    target	=> "${xml_file}",
+    content	=> template("pitlinz_virsh/network/head.erb"),
+    order   => "00",
 	}
 
-	concat::fragment{"${xml_file}_head":
-	    target	=> "${xml_file}",
-		content	=> template("pitlinz_virsh/network/head.erb"),
-		order   => "00",
-	}
-
-	concat::fragment{"${xml_file}_forward":
-	    target	=> "${xml_file}",
+  concat::fragment{"${xml_file}_forward":
+    target	=> "${xml_file}",
 		content	=> template("pitlinz_virsh/network/forward.erb"),
 		order   => "10",
 	}
 
 	concat::fragment{"${xml_file}_bridge":
-	    target	=> "${xml_file}",
+    target	=> "${xml_file}",
 		content	=> template("pitlinz_virsh/network/bridge.erb"),
 		order   => "20",
 	}
 
-	concat::fragment{"${xml_file}_ip":
-	    target	=> "${xml_file}",
-		content	=> template("pitlinz_virsh/network/ip.erb"),
-		order   => "30",
+  concat::fragment{"${xml_file}_ip":
+    target	=> "${xml_file}",
+    content	=> template("pitlinz_virsh/network/ip.erb"),
+    order   => "30",
 	}
 
 	concat::fragment{"${xml_file}_close":
-	    target	=> "${xml_file}",
-	    content => "\n</network>\n",
-	    order	=> "99"
+    target	=> "${xml_file}",
+    content => "\n</network>\n",
+    order	=> "99"
 	}
 
-    $pidfile = $::pitlinz_virsh::pidfile
+  $pidfile = $::pitlinz_virsh::pidfile
 
 	if !defined(File["${::pitlinz_virsh::path_etc}/hooks/network"]) {
 		file{"${::pitlinz_virsh::path_etc}/hooks/network":
@@ -151,13 +152,13 @@ class pitlinz_virsh::qemu::network (
 		}
 	}
 
-	if !defined(File["${::pitlinz_virsh::path_etc}/hooks/net"]) {
-        file{"${::pitlinz_virsh::path_etc}/hooks/net":
-            ensure => directory,
-            require	=> Package['libvirt-bin'],
-            mode   => '0550'
-        }
+  if !defined(File["${::pitlinz_virsh::path_etc}/hooks/net"]) {
+    file{"${::pitlinz_virsh::path_etc}/hooks/net":
+      ensure => directory,
+      require	=> Package['libvirt-bin'],
+      mode   => '0550'
     }
+  }
 
     file{"${::pitlinz_virsh::path_etc}/hooks/net/${netname}.conf":
         content => template("pitlinz_virsh/hooks/net/config.erb"),
