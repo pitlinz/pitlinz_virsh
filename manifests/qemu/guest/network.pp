@@ -26,7 +26,7 @@ define pitlinz_virsh::qemu::guest::network(
 	$instscript = true,
 
 ) {
-
+    
     if $nodename == undef {
         fail('no name defined')
     }

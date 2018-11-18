@@ -1,12 +1,12 @@
 
-		echo "---- pitlinz_virsh/hooks/firewall/20_start_natfilter.erb $1 ----"
+echo "---- pitlinz_virsh/hooks/firewall/20_start_natfilter.erb $1 ----"
 
 <%- if @fwnat and @fwnat.size then -%><%- @fwnat.to_a.each do |rule| -%>
 		/sbin/iptables -t nat -A <%= rule %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
-<%- end -%><%- end -%>						
-<%- if @fwfilter and @fwfilter.size then -%><%- @fwfilter.to_a.each do |rule| -%> 
+<%- end -%><%- end -%>
+<%- if @fwfilter and @fwfilter.size then -%><%- @fwfilter.to_a.each do |rule| -%>
 		/sbin/iptables -A <%= rule %> -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"
-<%- end -%><%- end -%>				
+<%- end -%><%- end -%>
 <%- if @tcpports and @tcpports == "*" then -%>
 		/sbin/iptables -t nat -A VIRSHPREROUTING -d <%= @extip %> -p tcp -j DNAT --to-destination <%= @_intip %>  -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
 		/sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -o <%= @extif %> -j SNAT --to-source <%= @extip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
@@ -14,11 +14,16 @@
 <%- else -%><%- if @tcpports and @tcpports != "" then -%>
 		/sbin/iptables -t nat -A VIRSHPREROUTING  -d <%= @extip %> -p tcp -m multiport --dports <%= @tcpports %> -j DNAT --to-destination <%= @_intip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
 		/sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -o <%= @extif %> -p tcp -m multiport --sports <%= @tcpports %> -j SNAT --to-source <%= @extip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
-		/sbin/iptables -A VIRSHFORWARD -d <%= @_intip %>  -p tcp -m multiport --dports <%= @tcpports %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"	
+		/sbin/iptables -A VIRSHFORWARD -d <%= @_intip %>  -p tcp -m multiport --dports <%= @tcpports %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"
 <%- end -%><%- end -%>
+<%- if @extip != "" then -%>
+        /sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -j SNAT --to-source <%= @extip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
+<%- else -%>
+        /sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -o -j MASQUERADE
+<%- end -%>
+
 <%- if @udpports and @udpports != "" and @udpports != "*" then -%>
 		/sbin/iptables -t nat -A VIRSHPREROUTING -d <%= @extip %> -p udp -m multiport --dports <%= @udpports %> -j DNAT --to-destination <%= @_intip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
 		/sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -o <%= @extif %> -p udp -m multiport --sports <%= @udpports %> -j SNAT --to-source <%= @extip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
-		/sbin/iptables -A VIRSHFORWARD -d <%= @_intip %>  -p udp -m multiport --dports <%= @udpports %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"	
-<%- end -%>					
-				
+		/sbin/iptables -A VIRSHFORWARD -d <%= @_intip %>  -p udp -m multiport --dports <%= @udpports %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"
+<%- end -%>

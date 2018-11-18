@@ -1,13 +1,13 @@
 
 # puppet module: pitlinz_virsh
 # nginx config fragment: serverfooter
-# 
+#
 
 <%- if @_accesslog != "" then -%>
-	access_log <%= _accesslog %>;
+	access_log <%= @_accesslog %>;
 <%- end -%>
 <%- if @_errorlog != "" then -%>
-	error_log <%= _errorlog %>;
+	error_log <%= @_errorlog %>;
 <%- end -%>
 
 }

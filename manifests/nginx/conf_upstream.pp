@@ -2,14 +2,13 @@
  * defines a upstream
  */
 define pitlinz_virsh::nginx::conf_upstream (
-    $path 		= undef,
 	$upport		= 80,
 	$lport		= 80,
 	$nodeids	= [],
 	$nodeips	= [],
 	$timeout	= "900",
 	$moniturl	= "/",
-	$prio		= 100,
+	$prio		= 10,
 
 ) {
     if $::pitlinz_virsh::hostid < 10 {

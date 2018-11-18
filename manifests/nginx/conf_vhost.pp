@@ -48,7 +48,7 @@ define pitlinz_virsh::nginx::conf_vhost(
 	if is_array($localIps) {
 	    $_localIps = $localIps
 	} else {
-	    if is_string($localIps) and $localIps != "" and $localIps != '-' {
+	    if $localIps and is_string($localIps) and $localIps != "" and $localIps != '-' {
 	    	$_localIps = split($localIps,',')
 	   	} else {
 	   	    $_localIps = []
@@ -92,21 +92,28 @@ define pitlinz_virsh::nginx::conf_vhost(
 		notify => Service["nginx"]
 	}
 
-	$fwhook = "${::pitlinz_virsh::path_etc}/hooks/firewall/${nodename}"
+    if $nodename {
+    	$fwhook = "${::pitlinz_virsh::path_etc}/hooks/firewall/${nodename}"
 
-	::concat::fragment{"${fwhook}_${servername}_${listenPort}":
-	    target	=> "${fwhook}",
-		content	=> "\n\t\t/sbin/iptables -A VIRSHINPUT -p tcp --dport ${listenPort} -d ${listenIp} -j ACCEPT -m comment --comment \"-VIRSH-${nodename}-FILTER-\"\n",
-		order   => "21",
-	}
+    	::concat::fragment{"${fwhook}_${servername}_${listenPort}":
+    	    target	=> "${fwhook}",
+    		content	=> "\n\t\t/sbin/iptables -A VIRSHINPUT -p tcp --dport ${listenPort} -d ${listenIp} -j ACCEPT -m comment --comment \"-VIRSH-${nodename}-FILTER-\"\n",
+    		order   => "21",
+    	}
 
-	if is_ip_address($failoverIp) {
-		::concat::fragment{"${fwhook}_${servername}_${listenPort}":
-		    target	=> "${fwhook}",
-			content	=> "\n\t\t/sbin/iptables -A VIRSHINPUT -p tcp --dport ${listenPort} -d ${failoverIp} -j ACCEPT -m comment --comment \"-VIRSH-${nodename}-FILTER-\"\n",
-			order   => "21",
-		}
+    	if is_ip_address($failoverIp) {
+    		::concat::fragment{"${fwhook}_${servername}_${listenPort}":
+    		    target	=> "${fwhook}",
+    			content	=> "\n\t\t/sbin/iptables -A VIRSHINPUT -p tcp --dport ${listenPort} -d ${failoverIp} -j ACCEPT -m comment --comment \"-VIRSH-${nodename}-FILTER-\"\n",
+    			order   => "21",
+    		}
+    	}
+    }
 
-	}
+    $comment = "nginx_${name}_${listenPort}"
+    exec {"iptables_nginxvhost_${name}_${listenPort}":
+        command => "/sbin/iptables -A INPUT -d $listenIp -p TCP --dport $listenPort -j ACCEPT -m comment --comment \"${comment}\" ",
+        unless  => "/sbin/iptables-save | grep $comment"
+    }
 
 }

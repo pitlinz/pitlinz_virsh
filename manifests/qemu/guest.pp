@@ -5,7 +5,7 @@ define pitlinz_virsh::qemu::guest(
     $ensure     = present,
 	$nodeid	  	= undef,
 	$netid		= $::pitlinz_virsh::hostid,
-    $netname    = 'default',
+    $netname    = $::pitlinz_virsh::netname,
 	$extip		= $::ipaddress,
 	$nicmodel	= 'virtio',
 	$tcpports 	= '',

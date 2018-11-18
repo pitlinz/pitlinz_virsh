@@ -197,6 +197,11 @@ class pitlinz_virsh::qemu::network (
 
 
 	if ($monit) {
+        exec {"monit_lo_${netname}":
+            command => "/sbin/iptables -A INPUT -i lo -d ${_net_ippre}.1 -j ACCEPT",
+            unless  => "/sbin/iptables -L INPUT -nv | /bin/grep lo | /bin/grep ${_net_ippre}.1  | /bin/grep ACCEPT"
+        }
+
     	::monit::check::network{"virshnet_${netname}":
     	    ensure		=> $ensure_file,
     	    interface	=> $bridge,

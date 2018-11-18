@@ -1,6 +1,8 @@
-		*)
-			echo "unknow command $@" >> $LOGFILE
-			;;
+
+    # template: pitlinz_virsh/hooks/qemu/99_footer.erb
+    *)
+        echo "unknow command $@" >> $LOGFILE
+        ;;
 esac
 
 echo "HOOKSCRIPTDONE $0 $@" >> $LOGFILE
