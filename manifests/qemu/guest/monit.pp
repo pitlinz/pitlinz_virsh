@@ -62,25 +62,24 @@ define pitlinz_virsh::qemu::guest::monit(
 	}
 
     if $proc_ensure == present {
-        monit::check::host{"virsh_${name}":
+        monit::check::host{"vhost_${name}":
             ensure			=> $proc_ensure,
-            process 		=> "qemu-system-x86_64",
-    		pidfile			=> "/var/run/libvirt/qemu/${name}.pid",
+            chkaddress      => $intip,
     		start			=> "/usr/bin/virsh start ${name}",
     		stop			=> "/usr/bin/virsh shutdown ${name}",
-    		depends_on		=> [virsh_${name}],
+    		depends_on		=> ["virsh_${name}"],
     		customlines		=> $_proc_checks,
     		mgroups			=> ["virsh","virsh_${name}"]
     	}
 
         exec {"monit_lo_${name}":
-            command => "/sbin/iptables -A INPUT -i lo -d ${intip} -j ACCEPT",
-            unless  => "/sbin/iptables -L INPUT -nv | /bin/grep lo | /bin/grep ${intip} | /bin/grep ACCEPT"
+            command => "/sbin/iptables -A INPUT -i lo -j ACCEPT",
+            unless  => "/sbin/iptables -L INPUT -nv | /bin/grep lo | /bin/grep ACCEPT"
         }
 
         exec {"monit_vnc_${name}":
             command => "/sbin/iptables -A INPUT -d 127.0.0.1 -p tcp --dport 59${nodeid} -j ACCEPT",
-            unless  => "/sbin/iptables -L INPUT -nv | /bin/grep lo | /bin/grep 59${nodeid} | /bin/grep ACCEPT"
+            unless  => "/sbin/iptables -L INPUT -nv | /bin/grep '127.0.0.1'  | /bin/grep 59${nodeid} | /bin/grep ACCEPT"
         }
 
     }

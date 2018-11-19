@@ -13,35 +13,36 @@ define pitlinz_virsh::qemu::guest(
 	$fwfilter	= [],
 	$cpus		= 1,
 	$memory		= 4096,
-  $disks 		= undef,
+    $disks 		= undef,
 
-  $ostype		= 'linux',
-  $installurl	= "http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/",
-  $isoimage	= "",
-  $boot		= "",
+    $ostype		= 'linux',
+    $installurl	= "http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/",
+    $isoimage	= "",
+    $boot		= "",
 
 	$proxynames	= "",
 	$proxyport	= "80",
 	$runinstall	= true,
 	$monit		= undef,
 ) {
-  include ::pitlinz_virsh::qemu::network
+    include ::pitlinz_virsh::qemu::network
 
-  if !is_integer($nodeid) {
-    fail("nodeid is not a number")
-  }
+    if !is_integer($nodeid) {
+        fail("nodeid is not a number")
+    }
 
-  if $ip_address == undef {
-    $arr_ipAddr = split("${::pitlinz_virsh::networkpre}",".")
-
-    if $arr_ipAddr[2] != '' {
-      $_ip_address = "${::pitlinz_virsh::networkpre}${netid}.${nodeid}"
-		} else {
-      if ($netid < 10)		{$_ip_address = "${::pitlinz_virsh::networkpre}0${netid}.${nodeid}"}
-			elsif ($netid < 100)	{$_ip_address = "${::pitlinz_virsh::networkpre}${netid}.${nodeid}"}
-			else					{fail("network id (host id) must not be larger then 99")}
-		}
-	}
+    if $ip_address == undef {
+        $arr_ipAddr = split("${::pitlinz_virsh::networkpre}",".")
+        if $arr_ipAddr[2] != '' {
+            $_ip_address = "${::pitlinz_virsh::networkpre}${netid}.${nodeid}"
+        } else {
+            if ($netid < 10)		{$_ip_address = "${::pitlinz_virsh::networkpre}0${netid}.${nodeid}"}
+	        elsif ($netid < 100)	{$_ip_address = "${::pitlinz_virsh::networkpre}${netid}.${nodeid}"}
+		    else					{fail("network id (host id) must not be larger then 99")}
+	   }
+   } else {
+      $_ip_address = $ip_address
+   }
 
 	::concat{"${::pitlinz_virsh::path_setup}/${name}.sh":
 		ensure 	=> $ensure,
@@ -138,7 +139,8 @@ define pitlinz_virsh::qemu::guest(
 	if is_hash($monit) {
 		pitlinz_virsh::qemu::guest::monit{"${name}":
 		    ensure 	=> $monit[ensure],
-		    nodeid	=> $nodeid
+		    nodeid	=> $nodeid,
+            intip   => $_ip_address
 		}
 	} else {
 		pitlinz_virsh::qemu::guest::monit{"${name}":

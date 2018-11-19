@@ -9,23 +9,23 @@ class pitlinz_virsh(
 
   $extif		 = 'eth0',
 
-	$bridgename  = 'virbr0',
-	$netname	 = 'default',
-	$networkpre	 = '192.168.',
-	$localdomain = 'localnet',
+  $bridgename  = 'virbr0',
+  $netname	 = 'default',
+  $networkpre	 = '192.168.',
+  $localdomain = 'localnet',
 
-	$servicename = 'libvirt-bin',
+  $servicename = 'libvirt-bin',
 
-	$user		 = 'libvirt-qemu',
-	$group		 = 'kvm',
-	$dnsmasquser = 'libvirt-dnsmasq',
+  $user		 = 'libvirt-qemu',
+  $group		 = 'kvm',
+  $dnsmasquser = 'libvirt-dnsmasq',
 
   $pidfile     = '/var/run/libvirtd.pid',
-	$monit 	= {
-    start		=> true,
+  $monit 	= {
+      start		=> true,
 		daemonchks	=> [
-      "if cpu usage > 100% for 5 cycles then alert",
-			"if cpu usage > 500% for 5 cycles then restart",
+            "if cpu usage > 100% for 5 cycles then alert",
+            "if cpu usage > 500% for 5 cycles then restart",
 			"if mem > 54 MB for 5 cycles then alert",
 		]
 	},
