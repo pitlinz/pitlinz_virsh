@@ -1,0 +1,14 @@
+
+        # template: pitlinz_virsh/hooks/qemu/88_drbdprimary.erb
+
+        DRBDROLE=`/sbin/drbdadm role <%= @nodename %>`
+        LROLE=`echo $DRBDROLE | cut -f1 -d'/'`
+
+        if [ "$LROLE" == "Primary" ]; then
+            /sbin/drbdadm secondary <%= @nodename %>
+            RET=$?
+            if [ $RET != 0 ]; then
+                echo "DRBDERROR: could not set <%= @nodename %> to secondary"
+                exit $RET
+            fi
+        fi

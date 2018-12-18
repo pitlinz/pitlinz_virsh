@@ -1,0 +1,7 @@
+
+# letsencrypt well-known dir
+# puppet template: pitlinz_virsh/templates/nginx/letsencrypt.erb
+
+    location /.well-known {
+            alias /var/www/<%= @servername %>/.well-known;
+    }

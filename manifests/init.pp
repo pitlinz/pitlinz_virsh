@@ -41,10 +41,10 @@ class pitlinz_virsh(
 	}
 
   $path_base	= "/srv/virsh"
-  $path_setup = "/srv/virsh/setup"
-  $path_img	= "/srv/virsh/images"
+  $path_setup   = "/srv/virsh/setup"
+  $path_img	    = "/srv/virsh/images"
   $path_cdrom	= "/srv/virsh/iso"
-  $path_etc	= "/etc/libvirt"
+  $path_etc	    = "/etc/libvirt"
 
 	File{
     owner   => $user,

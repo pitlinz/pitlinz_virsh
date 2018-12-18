@@ -1,14 +1,13 @@
-  
+
 # puppet module: pitlinz_virsh
 # nginx config fragment: ssl
-# 
+#
 
   ssl on;
-  ssl_certificate /etc/nginx/ssl/<%= ssl_certificate %>;
-  ssl_certificate_key /etc/nginx/ssl/<%= ssl_key %>;
-	
+  ssl_certificate /etc/nginx/ssl/<%= @ssl_certificate %>;
+  ssl_certificate_key /etc/nginx/ssl/<%= @ssl_key %>;
+
   ssl_session_timeout 2m;
   ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;
   ssl_ciphers "HIGH:!aNULL:!MD5 or HIGH:!aNULL:!MD5:!3DES";
   ssl_prefer_server_ciphers on;
-  

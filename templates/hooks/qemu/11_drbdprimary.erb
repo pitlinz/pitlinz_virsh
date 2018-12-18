@@ -1,0 +1,19 @@
+
+        # template: pitlinz_virsh/hooks/qemu/11_drbdprimary.erb
+
+        DRBDROLE=`/sbin/drbdadm role <%= @nodename %>`
+        LROLE=`echo $DRBDROLE | cut -f1 -d'/'`
+        RROLE=`echo $DRBDROLE | cut -f2 -d'/'`
+
+        if [ "$LROLE" != "Primary" ]; then
+            if [ "$RROLE" == "Primary" ]; then
+                echo "DRBDERROR: other host/node is primary"
+                exit 11
+            fi
+            /sbin/drbdadm primary <%= @nodename %>
+            RET=$?
+            if [ $RET != 0 ]; then
+                echo "DRBDERROR: could not set <%= @nodename %> to primary"
+                exit $RET
+            fi
+        fi
