@@ -16,9 +16,9 @@ define pitlinz_virsh::nginx::conf_letsencrypt(
 
     concat::fragment{"${confFile}_letsencrypt":
 	    target	=> "${confFile}",
-		content	=> template("pitlinz_virsh/nginx/letsencrypt.erb"),
-		order   => "101",
-	}
+		  content	=> template("pitlinz_virsh/nginx/letsencrypt.erb"),
+      order   => "101",
+	  }
 
     exec{"certbot ${servername}":
         command => "/usr/bin/certbot certonly --webroot -w /var/www/${servername}/ -d ${servername} -d ${serveraliases}",

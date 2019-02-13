@@ -21,9 +21,9 @@
 		rm /tmp/ipt<%= @nodename %>
 		;;
 	restart)
-        $0 delete
-        if [ `/bin/ps aux | /bin/grep qemu | /bin/grep "guest=<%= @nodename %>" | /bin/grep -c ":<%= @nodeid %>"` -gt 0 ]; then
-            $0 start
+		$0 delete
+		if [ `/bin/ps aux | /bin/grep qemu | /bin/grep "name <%= @nodename %>" | /bin/grep -c ":<%= @nodeid %>"` -gt 0 ]; then
+			$0 start
 		fi
 		;;
 esac

@@ -12,7 +12,7 @@ define pitlinz_virsh::guest(
 	$tcpports = "",
 	$fwnat		= [],
 	$fwfilter	= [],
-	$cpus		= "1",
+	$cpus		  = "1",
 	$memory		= "4096",
   $disks 		= undef,
   $isoimage	= "",

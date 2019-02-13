@@ -7,6 +7,7 @@ define pitlinz_virsh::nginx::conf_upstream (
 	$nodeids	= [],
 	$nodeips	= [],
 	$timeout	= "900",
+	$uppath		= "/",
 	$moniturl	= "/",
 	$prio		= 10,
 

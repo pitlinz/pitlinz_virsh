@@ -1,12 +1,12 @@
 define pitlinz_virsh::nginx::conf_proxy (
-    $servername		= undef,
-    $listenPort		= "80",
-	$path			= "/",
-	$upname			= undef,
-    $uppath         = '/',
-	$timeout		= 30,
-	$psettings		= [],
-    $order          = 200,
+    $servername		 = undef,
+    $listenPort		 = "80",
+	  $path			     = "/",
+	  $upname			   = undef,
+    $uppath        = '/',
+	  $timeout		   = 30,
+	  $psettings		 = [],
+    $order         = 200,
 ) {
     $confFile = "/etc/nginx/sites-available/server_${servername}_${listenPort}.conf"
 
@@ -24,9 +24,9 @@ define pitlinz_virsh::nginx::conf_proxy (
 	    $_upname=$upname
 	}
 
-    concat::fragment{"${confFile}_proxy_${name}":
-        target 	=> "${confFile}",
-		content => template("pitlinz_virsh/nginx/proxylocation.erb"),
-		order	=> $order,
+  concat::fragment{"${confFile}_proxy_${name}":
+    target 	=> "${confFile}",
+    content => template("pitlinz_virsh/nginx/proxylocation.erb"),
+    order	  => $order,
 	}
 }

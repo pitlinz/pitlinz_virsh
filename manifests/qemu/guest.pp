@@ -124,7 +124,7 @@ define pitlinz_virsh::qemu::guest(
 		}
 
 		::pitlinz_virsh::nginx::conf_upstream{"${name}":
-			    path		=> "/",
+			  uppath		=> "/",
 				nodeips		=> [ "${_ip_address}" ],
 				notify		=> Service["nginx"],
 				require		=> Package["nginx"]

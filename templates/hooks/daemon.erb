@@ -37,17 +37,17 @@ fi
 
 case "$CMD" in
 	start)
-        iptables -N VIRSHINPUT &>/dev/null
-        if [ $? == 0 ]; then
-            iptables -A VIRSHINPUT -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
-            iptables -A VIRSHINPUT -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
-        fi
+    iptables -N VIRSHINPUT &>/dev/null
+    if [ $? == 0 ]; then
+        iptables -A VIRSHINPUT -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
+        iptables -A VIRSHINPUT -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
+    fi
 
 		iptables -N VIRSHFORWARD &>/dev/null
-        if [ $? == 0 ]; then
-            iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
-            iptables -A VIRSHFORWARD -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
-        fi
+    if [ $? == 0 ]; then
+        iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
+        iptables -A VIRSHFORWARD -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
+    fi
 
 		iptables -t nat -N VIRSHPREROUTING &>/dev/null
 		iptables -t nat -N VIRSHPOSTROUTING &>/dev/null
@@ -55,38 +55,39 @@ case "$CMD" in
 		;;
 	stop)
 		;;
-    shutdown)
-        $0 stop
-        ;;
+
+  shutdown)
+    $0 stop
+    ;;
 	restart)
 		$0 stop
 		$0 start
 		;;
 
 	status)
-        iptables -L VIRSHINPUT &>/dev/null
-        if [ $? != 0 ]; then
-            echo "VIRSHINPUT not defined"
-            exit -1
-        fi
+    iptables -L VIRSHINPUT &>/dev/null
+    if [ $? != 0 ]; then
+        echo "VIRSHINPUT not defined"
+        exit -1
+    fi
 
-        iptables -L VIRSHFORWARD &>/dev/null
-        if [ $? != 0 ]; then
-            echo "VIRSHFORWARD not defined"
-            exit -2
-        fi
+    iptables -L VIRSHFORWARD &>/dev/null
+    if [ $? != 0 ]; then
+        echo "VIRSHFORWARD not defined"
+        exit -2
+    fi
 
-        iptables -t nat -L VIRSHPREROUTING &>/dev/null
-        if [ $? != 0 ]; then
-            echo "VIRSHPREROUTING not defined"
-            exit -3
-        fi
+    iptables -t nat -L VIRSHPREROUTING &>/dev/null
+    if [ $? != 0 ]; then
+        echo "VIRSHPREROUTING not defined"
+        exit -3
+    fi
 
-        iptables -t nat -L VIRSHPOSTROUTING &>/dev/null
-        if [ $? != 0 ]; then
-            echo "VIRSHPOSTROUTING not defined"
-            exit -4
-        fi
+    iptables -t nat -L VIRSHPOSTROUTING &>/dev/null
+    if [ $? != 0 ]; then
+        echo "VIRSHPOSTROUTING not defined"
+        exit -4
+    fi
 
 		exit 0
 		;;
