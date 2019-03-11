@@ -7,10 +7,8 @@
 # file manged by puppet module pitlinz_virsh
 #
 # template: pitlinz_virsh/hooks/daemon.erb
-#
 # do not edit will be overritten
-#
-# hostid <%= @hostid %>
+# hostid <%= @hostid %> 
 
 . /etc/environment
 
@@ -39,19 +37,24 @@ case "$CMD" in
 	start)
     iptables -N VIRSHINPUT &>/dev/null
     if [ $? == 0 ]; then
-        iptables -A VIRSHINPUT -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
-        iptables -A VIRSHINPUT -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
+      iptables -A VIRSHINPUT -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
+      iptables -A VIRSHINPUT -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
     fi
 
 		iptables -N VIRSHFORWARD &>/dev/null
     if [ $? == 0 ]; then
-        iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
-        iptables -A VIRSHFORWARD -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
+      iptables -A VIRSHFORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment -VIRSHDEAMON-
+      iptables -A VIRSHFORWARD -i <%= @bridgename %> -j ACCEPT -m comment --comment -VIRSHDEAMON-
     fi
 
 		iptables -t nat -N VIRSHPREROUTING &>/dev/null
+    if [ $? == 0 ]; then
+      iptables -t nat -I PREROUTING -j VIRSHPREROUTING
+    fi
 		iptables -t nat -N VIRSHPOSTROUTING &>/dev/null
-
+    if [ $? == 0 ]; then
+      iptables -t nat -I POSTROUTING -j VIRSHPOSTROUTING
+    fi
 		;;
 	stop)
 		;;
@@ -63,7 +66,13 @@ case "$CMD" in
 		$0 stop
 		$0 start
 		;;
-
+  reload)
+    $0 start
+    for CONF in `ls /etc/libvirt/hooks/net/*.conf`; do
+      . $CONF
+      echo $BRIDGE
+    done
+    ;;
 	status)
     iptables -L VIRSHINPUT &>/dev/null
     if [ $? != 0 ]; then
@@ -92,7 +101,7 @@ case "$CMD" in
 		exit 0
 		;;
 	*)
-		echo "usage $0 [start|stop|restart|status]"
+		echo "usage $0 [start|stop|restart|status|reload]"
 		echo "$@"
 		;;
 esac

@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# set virsh tables and rules
+#
+# file handeled by puppet <%= @name %> do not edit
+#
+
+# first check if virsh is running
+
+if [ "${2}" == "-v" ]; then
+        echo "$0 $@"
+        set -x
+fi
+
+case "$1" in
+	start)
+        if [ -d /etc/libvirt/hooks/net ]; then
+            for NETWORK in `ls /etc/libvirt/hooks/net/ | cut -f1 -d'.'`; do
+                /etc/libvirt/hooks/network $NETWORK restart
+            done
+        fi
+        ;;
+    stop)
+        # nothing to do here
+        ;;
+    restart)
+        $0 start
+        ;;
+esac

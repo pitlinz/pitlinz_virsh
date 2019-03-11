@@ -116,7 +116,7 @@ case "$2" in
         fi
 
         # avoid using virsh list becaus status of virsh is not known
-        for GUEST in `/bin/ps aux | /bin/grep qemu | /bin/grep "guest=" | /usr/bin/cut -f2 -d'_' | /usr/bin/cut -f1 -d',' | /usr/bin/cut -f2 -d'='`; do
+        for GUEST in `/bin/ps aux | /bin/grep libvirt | /bin/egrep -o '\-name \w*' | /usr/bin/cut -f2 -d' '`; do
             if [ -x /etc/libvirt/hooks/firewall/${GUEST} ]; then
                 /etc/libvirt/hooks/firewall/${GUEST} restart
             fi
@@ -125,7 +125,6 @@ case "$2" in
 		;;
 
 	stop)
-        $0 $1 clean $VERBOSE
         iptables-save | grep "VIRSHNET-$1-FILTER" > /tmp/VIRSHNETFILTER
         sed -i 's/-A/iptables -D/g' /tmp/VIRSHNETFILTER
         . /tmp/VIRSHNETFILTER

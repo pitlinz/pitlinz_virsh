@@ -92,7 +92,7 @@ define pitlinz_virsh::nginx::conf_vhost(
 		notify => Service["nginx"]
 	}
 
-    if $nodename {
+    if $nodename != undef {
     	$fwhook = "${::pitlinz_virsh::path_etc}/hooks/firewall/${nodename}"
 
     	::concat::fragment{"${fwhook}_${servername}_${listenPort}":

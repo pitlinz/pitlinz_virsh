@@ -13,7 +13,7 @@ echo "---- pitlinz_virsh/hooks/firewall/20_start_natfilter.erb $1 ----"
 		/sbin/iptables -A VIRSHFORWARD -d <%= @_intip %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"
 <%- else -%><%- if @tcpports and @tcpports != "" then -%>
 		/sbin/iptables -t nat -A VIRSHPREROUTING  -d <%= @extip %> -p tcp -m multiport --dports <%= @tcpports %> -j DNAT --to-destination <%= @_intip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
-		/sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -o <%= @extif %> -p tcp -m multiport --sports <%= @tcpports %> -j SNAT --to-source <%= @extip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
+		/sbin/iptables -t nat -A VIRSHPOSTROUTING -s <%= @_intip %> -o <%= @extif %> -j SNAT --to-source <%= @extip %> -m comment --comment "VIRSHNODE-<%= @nodename %>-NAT-"
 		/sbin/iptables -A VIRSHFORWARD -d <%= @_intip %>  -p tcp -m multiport --dports <%= @tcpports %> -j ACCEPT -m comment --comment "VIRSHNODE-<%= @nodename %>-FILTER-"
 <%- end -%><%- end -%>
 <%- if @extip != "" then -%>

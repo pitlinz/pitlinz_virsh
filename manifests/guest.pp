@@ -19,7 +19,7 @@ define pitlinz_virsh::guest(
   $boot		= "",
   $proxynames = "",
 	$runinstall	= true,
-	$installurl	= "http://archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/",
+	$installurl	= "http://archive.ubuntu.com/ubuntu/dists/bionic/main/installer-amd64/",
 	$autostart	= true,
 	$monit		= undef,
 ) {

@@ -144,4 +144,12 @@ class pitlinz_virsh(
 			require         => File["${path_etc}/hooks/daemon"],
 		}
 	}
+
+  if defined(File['/etc/firewall']) and !defined(File['/etc/firewall/990-virsh.sh']) {
+    file{'/etc/firewall/990-virsh.sh':
+      ensure  => $_file_ensure,
+      content => template('pitlinz_virsh/hooks/firewall/virsh-firewall.erb'),
+      mode    => '0550'
+    }
+  }
 }
