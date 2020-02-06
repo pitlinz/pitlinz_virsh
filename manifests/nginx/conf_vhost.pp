@@ -1,7 +1,7 @@
 define pitlinz_virsh::nginx::conf_vhost(
-   	$listenIp 		= $::ipaddress,
-   	$failoverIp		= undef,
-   	$localIps		= undef,
+  $listenIp 		= $::ipaddress,
+  $failoverIp		= undef,
+  $localIps		= undef,
 	$listenPort		= 80,
 	$nodename		= undef,
 	$servername 	= undef,

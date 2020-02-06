@@ -16,7 +16,7 @@ class pitlinz_virsh(
 
   $servicename = 'libvirt-bin',
 
-  $user		 = 'libvirt-qemu',
+  $user		   = 'libvirt-qemu',
   $group		 = 'kvm',
   $dnsmasquser = 'libvirt-dnsmasq',
 

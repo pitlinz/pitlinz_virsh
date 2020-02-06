@@ -24,47 +24,47 @@ define pitlinz_virsh::guest(
 	$monit		= undef,
 ) {
 
-	case $type {
+  case $type {
     'qemu': {
-        include ::pitlinz_virsh::qemu
+      include ::pitlinz_virsh::qemu
 
-        ::pitlinz_virsh::qemu::guest{"${name}":
+      ::pitlinz_virsh::qemu::guest{"${name}":
         ensure 	=> $ensure,
-				nodeid	=> $nodeid,
+  		  nodeid	=> $nodeid,
         netname => $netname,
-				extip		=> $extip,
-				tcpports=> $tcpports,
-				fwnat		=> $fwnat,
-				fwfilter=> $fwfilter,
-				cpus		=> $cpus,
-				memory	=> $memory,
-    			disks 		=> $disks,
-    			isoimage	=> $isoimage,
-    			boot		=> $boot,
-    			require		=> File["${::pitlinz_virsh::path_etc}/hooks/qemu"],
-    			proxynames	=> $proxynames,
-    			runinstall	=> $runinstall,
-    			installurl	=> $installurl,
-    			monit		=> $monit,
-			}
-	    }
-	}
+  		  extip		=> $extip,
+  		  tcpports=> $tcpports,
+  		  fwnat		=> $fwnat,
+  		  fwfilter=> $fwfilter,
+  		  cpus		=> $cpus,
+  		  memory	=> $memory,
+  		  disks 		=> $disks,
+  			isoimage	=> $isoimage,
+  			boot		=> $boot,
+  			require		=> File["${::pitlinz_virsh::path_etc}/hooks/qemu"],
+  			proxynames	=> $proxynames,
+  			runinstall	=> $runinstall,
+  			installurl	=> $installurl,
+  			monit		=> $monit,
+  		}
+    }
+  }
 
-	if $autostart {
-	    exec{"virsh_autostart ${name}":
-			command => "/usr/bin/virsh autostart ${name}",
-			creates	=> "${::pitlinz_virsh::path_etc}/${type}/autostart/${name}.xml"
-		}
-	} else {
-	    file{"${::pitlinz_virsh::path_etc}/${type}/autostart/${name}.xml":
-	        ensure => absent,
-	        notify => Exec["virsh_autostart_disable ${name}"]
-		}
+  if $autostart {
+    exec{"virsh_autostart ${name}":
+  	  command => "/usr/bin/virsh autostart ${name}",
+  	  creates	=> "${::pitlinz_virsh::path_etc}/${type}/autostart/${name}.xml"
+  	}
+  } else {
+    file{"${::pitlinz_virsh::path_etc}/${type}/autostart/${name}.xml":
+      ensure => absent,
+      notify => Exec["virsh_autostart_disable ${name}"]
+  	}
 
-	    exec{"virsh_autostart_disable ${name}":
-			command => "/usr/bin/virsh autostart ${name} --disable",
-			refreshonly => true
-		}
-	}
+    exec{"virsh_autostart_disable ${name}":
+  		command => "/usr/bin/virsh autostart ${name} --disable",
+  		refreshonly => true
+  	}
+  }
 
 }

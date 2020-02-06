@@ -19,12 +19,12 @@ define pitlinz_virsh::qemu::guest::disk::qcow2(
 	}
 
     if !defined(File["$imgDir"]) {
-        file {"$imgDir":
-            ensure 	=> directory,
-			owner	=> "${::pitlinz_virsh::user}",
-			group	=> "${::pitlinz_virsh::group}",
-			require => Exec["mkdir_${imgDir}"]
-		}
+      file {"$imgDir":
+        ensure 	=> directory,
+        owner	=> "${::pitlinz_virsh::user}",
+        group	=> "${::pitlinz_virsh::group}",
+        require => Exec["mkdir_${imgDir}"]
+      }
     }
 
 
@@ -37,10 +37,10 @@ define pitlinz_virsh::qemu::guest::disk::qcow2(
     $str_cmd = "/usr/bin/qemu-img create -f qcow2 ${_options} ${src} ${size}"
 
 	if $ensure == present {
-	    exec{"qcow_create_${src}":
-	        command	=> $str_cmd,
-	        creates => $src,
-	        require => File["$imgDir"]
+    exec{"qcow_create_${src}":
+      command	=> $str_cmd,
+      creates => $src,
+      require => File["$imgDir"]
 		}
 	}
 }
