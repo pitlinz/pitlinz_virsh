@@ -15,5 +15,4 @@ define pitlinz_virsh::nginx::conf_redirect (
 		notify	=> Service["nginx"]
 	}
 
-
 }
