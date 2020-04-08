@@ -26,6 +26,7 @@ define pitlinz_virsh::qemu::guest::firewall(
     $intip		= undef,
     $extip		= $::ipaddress,
     $extif		= $::libvirtextif,
+    $extnetmask = '255.255.255.192',
 
 	$tcpports 	= "",
 	$udpports	= "",
